@@ -137,9 +137,10 @@ void MQTTServo::handleStateTransition(stateEnum newState, const char* thrownSens
 void MQTTServo::updateWebPage() {
     // Update the web socket.
     char str[60];
+    sprintf(str, "s%i%s", this->pinNumber, stateString(this->currentState));
+    webSocket.broadcastTXT(str);
 
-    sprintf(str, "%i%s", this->pinNumber, stateString(this->currentState));
-
+    sprintf(str, "r%i%i", this->pinNumber, this->currentServoAngle);
     webSocket.broadcastTXT(str);
 }
 
@@ -182,8 +183,10 @@ void MQTTServo::adjustMovingTowardsClosed() {
         // Yes, so update the servo angle.
         if (this->angleThrown > this->angleClosed) {
             this->currentServoAngle--;
+            updateWebPage();
         } else {
             this->currentServoAngle++;
+            updateWebPage();
         }
 
         this->lastTimeServoMoved = millis();
@@ -207,8 +210,10 @@ void MQTTServo::adjustMovingTowardsThrown() {
         // Yes, so update the servo angle.
         if (this->angleThrown > this->angleClosed) {
             this->currentServoAngle++;
+            updateWebPage();
         } else {
             this->currentServoAngle--;
+            updateWebPage();
         }
 
         this->lastTimeServoMoved = millis();

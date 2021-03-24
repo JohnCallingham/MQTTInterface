@@ -40,7 +40,7 @@ MQTTRelay* relay2 = container.addRelay(1, "trains/track/sensor/456", "trains/tra
 MQTTSensor* sensor1 = container.addSensor(5, "trains/track/sensor/GPIO5");
 
 // Create a pointer to an MQTTSensor object which is connected directly to the I2C I/O expander.
-MQTTSensor* sensor2 = container.addSensor(5, "trains/track/sensor/GPIO5", pcf8575);
+//MQTTSensor* sensor2 = container.addSensor(5, "trains/track/sensor/GPIO5", pcf8575);
 
 // Forward declarations.
 void connectToWiFi();
@@ -60,14 +60,14 @@ void setup() {
   //servo1->setClosedSensorTopic("trains/track/sensor/789");
   //servo1->setThrownSensorTopic("trains/track/sensor/456");
 
-  //servo1->setAngleClosed(60);
-  //servo1->setAngleThrown(30);
+  servo1->setAngleClosed(170);
+  servo1->setAngleThrown(10);
 
   servo2->setAngleClosed(30);
-  servo2->setAngleThrown(60);
+  servo2->setAngleThrown(150);
 
-  //servo1->setTimeFromClosedToThrown_mS(2000);
-  //servo1->setTimeFromThrownToClosed_mS(2000);
+  servo2->setTimeFromClosedToThrown_mS(500);
+  servo2->setTimeFromThrownToClosed_mS(2000);
 
 }
 

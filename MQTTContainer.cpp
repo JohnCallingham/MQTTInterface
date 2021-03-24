@@ -311,8 +311,16 @@ void MQTTContainer::buildServosWebPage() {
         function init() {
             Socket = new WebSocket('ws://' + window.location.hostname + ':81/servos');
             Socket.onmessage = function(event) {
-                console.log('message received');
-                document.getElementById(event.data[0]).innerHTML = event.data.slice(1);
+                console.log('message received: ' + event.data);
+                switch(event.data[0]) {
+                    case 's':
+                        document.getElementById('s' + event.data[1]).innerHTML = event.data.slice(2);
+                        break;
+                    
+                    case 'r':
+                        document.getElementById('r' + event.data[1]).value = event.data.slice(2);
+                        break;
+                }
             }
             Socket.onopen = function(event) {console.log('Connection opened');}
             Socket.onerror = function(event) {console.log('Error');}
@@ -353,7 +361,8 @@ void MQTTContainer::buildServosWebPage() {
     servosWebPage += "<tr>";
     servosWebPage += "<td>Servo Pin</td>";
     servosWebPage += "<td>Servo Topic</td>";
-    servosWebPage += "<td>Servo State</td>";
+    servosWebPage += "<td width='200'>Servo State</td>";
+    servosWebPage += "<td>Servo Angle</td>";
     servosWebPage += "</tr>\n";
     
     // Add a table row for each servo.
@@ -365,9 +374,21 @@ void MQTTContainer::buildServosWebPage() {
         servosWebPage += "<td>";
 		servosWebPage += String(servo->getTurnoutTopic());
         servosWebPage += "</td>";
-        servosWebPage += "<td><div id='";
+        servosWebPage += "<td><div id='s";
         servosWebPage += servo->getPinNumber();
         servosWebPage += "'></div>";
+        servosWebPage += "</td>";
+
+        servosWebPage += "<td><div><input type='range' min='0' max='180' id='r"; 
+
+        servosWebPage += servo->getPinNumber();
+
+
+
+    // <!-- <div><input type="range" min="0" max="1023" value="512" id="brightness" oninput="sendBrightness()" /></div> -->
+
+
+        servosWebPage += "' /></div>";
         servosWebPage += "</td>";
         servosWebPage += "</tr>\n";
 	}
