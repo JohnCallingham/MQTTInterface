@@ -6,14 +6,13 @@
 extern WebSocketsServer webSocket;
 extern PubSubClient mqttClient;
 
-MQTTServo::MQTTServo(uint8_t pinNumber, const char* turnoutTopic) {
+MQTTServo::MQTTServo(uint8_t pinNumber, const char* turnoutTopic, Adafruit_PWMServoDriver* pwm) {
     // Store the parameters.
     this->pinNumber = pinNumber;
     this->turnoutTopic = turnoutTopic;
-    this->pwm = NULL;
+    this->pwm = pwm;
 
     // Configure the servo pin.
-    //pinMode(this->pinNumber, OUTPUT);
     configurePin();
 }
 
@@ -136,12 +135,14 @@ void MQTTServo::handleStateTransition(stateEnum newState, const char* thrownSens
 
 void MQTTServo::updateWebPage() {
     // Update the web socket.
-    char str[60];
-    sprintf(str, "s%i%s", this->pinNumber, stateString(this->currentState));
-    webSocket.broadcastTXT(str);
+    char strState[60];
+    char strAngle[60];
 
-    sprintf(str, "r%i%i", this->pinNumber, this->currentServoAngle);
-    webSocket.broadcastTXT(str);
+    sprintf(strState, "s%i%s", this->pinNumber, stateString(this->currentState));
+    webSocket.broadcastTXT(strState);
+
+    sprintf(strAngle, "r%i%i", this->pinNumber, this->currentServoAngle);
+    webSocket.broadcastTXT(strAngle);
 }
 
 const char* MQTTServo::stateString(stateEnum state) {
@@ -182,11 +183,15 @@ void MQTTServo::adjustMovingTowardsClosed() {
     if ((millis() - this->lastTimeServoMoved) > this->movePeriodToClosed_mS) {
         // Yes, so update the servo angle.
         if (this->angleThrown > this->angleClosed) {
-            this->currentServoAngle--;
-            updateWebPage();
+            if (this->currentServoAngle > 0) {
+                this->currentServoAngle--;
+                updateWebPage();
+            }
         } else {
-            this->currentServoAngle++;
-            updateWebPage();
+            if (this->currentServoAngle < 180) {
+                this->currentServoAngle++;
+                updateWebPage();
+            }
         }
 
         this->lastTimeServoMoved = millis();
@@ -209,11 +214,15 @@ void MQTTServo::adjustMovingTowardsThrown() {
     if ((millis() - this->lastTimeServoMoved) > this->movePeriodToThrown_mS) {
         // Yes, so update the servo angle.
         if (this->angleThrown > this->angleClosed) {
-            this->currentServoAngle++;
-            updateWebPage();
+            if (this->currentServoAngle < 180) {
+                this->currentServoAngle++;
+                updateWebPage();
+            }
         } else {
-            this->currentServoAngle--;
-            updateWebPage();
+            if (this->currentServoAngle > 0) {
+                this->currentServoAngle--;
+                updateWebPage();
+            }
         }
 
         this->lastTimeServoMoved = millis();

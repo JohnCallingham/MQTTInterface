@@ -6,12 +6,14 @@
 class MQTTRelay {
     public:
 
-        MQTTRelay(uint8_t pinNumber, const char* relayTopic);
-        MQTTRelay(uint8_t pinNumber, const char* relayTopic, PCF8575* pcf8575) 
-            : MQTTRelay(pinNumber, relayTopic) {this->pcf8575 = pcf8575;}
-        MQTTRelay(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic);
-        MQTTRelay(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic, PCF8575* pcf8575)
-            : MQTTRelay(pinNumber, relayOperateTopic, relayReleaseTopic) {this->pcf8575 = pcf8575;}
+        //MQTTRelay(uint8_t pinNumber, const char* relayTopic);
+        //MQTTRelay(uint8_t pinNumber, const char* relayTopic, PCF8575* pcf8575) 
+            //: MQTTRelay(pinNumber, relayTopic) {this->pcf8575 = pcf8575;}
+        MQTTRelay(uint8_t pinNumber, const char* relayTopic, PCF8575* pcf8575);
+        //MQTTRelay(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic);
+        //MQTTRelay(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic, PCF8575* pcf8575)
+            //: MQTTRelay(pinNumber, relayOperateTopic, relayReleaseTopic) {this->pcf8575 = pcf8575;}
+        MQTTRelay(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic, PCF8575* pcf8575);
 
         uint8_t getPinNumber() {return this->pinNumber;}
         const char* getRelayTopic() {return this->relayTopic;}

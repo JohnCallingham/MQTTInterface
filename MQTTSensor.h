@@ -8,9 +8,10 @@
 class MQTTSensor {
 
     public:
-        MQTTSensor(uint8_t pinNumber, const char* sensorTopic);
-        MQTTSensor(uint8_t pinNumber, const char* sensorTopic, PCF8575* pcf8575)
-            : MQTTSensor(pinNumber, sensorTopic) {this->pcf8575 = pcf8575;}
+        //MQTTSensor(uint8_t pinNumber, const char* sensorTopic);
+        //MQTTSensor(uint8_t pinNumber, const char* sensorTopic, PCF8575* pcf8575)
+            //: MQTTSensor(pinNumber, sensorTopic) {this->pcf8575 = pcf8575;}
+        MQTTSensor(uint8_t pinNumber, const char* sensorTopic, PCF8575* pcf8575);
 
         void loop();
 

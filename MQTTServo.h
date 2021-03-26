@@ -8,9 +8,10 @@
 class MQTTServo {
     public:
         // MQTTServo(uint8_t pinNumber, const char* turnoutTopic, Adafruit_PWMServoDriver* pwm);
-        MQTTServo(uint8_t pinNumber, const char* turnoutTopic);
-        MQTTServo(uint8_t pinNumber, const char* turnoutTopic, Adafruit_PWMServoDriver* pwm)
-            : MQTTServo(pinNumber, turnoutTopic) {this->pwm = pwm;}
+        // MQTTServo(uint8_t pinNumber, const char* turnoutTopic);
+        // MQTTServo(uint8_t pinNumber, const char* turnoutTopic, Adafruit_PWMServoDriver* pwm)
+        //     : MQTTServo(pinNumber, turnoutTopic) {this->pwm = pwm;}
+        MQTTServo(uint8_t pinNumber, const char* turnoutTopic, Adafruit_PWMServoDriver* pwm);
 
         enum receivedMessageEnum {
             messageThrown,
@@ -21,8 +22,8 @@ class MQTTServo {
 
         void setMQTTBroker(const char* mqttBroker) {this->mqttBroker = mqttBroker;}
         void setMQTTPort(uint16_t mqttPort) {this->mqttPort = mqttPort;}
-        void setAngleClosed(int angleClosed) {this->angleClosed = angleClosed;}
-        void setAngleThrown(int angleThrown) {this->angleThrown = angleThrown;}
+        void setAngleClosed(int angleClosed) {this->angleClosed = angleClosed; this->currentServoAngle = angleClosed;} // Need to reset the curernt angle to prevent going to 0 or 180.
+        void setAngleThrown(int angleThrown) {this->angleThrown = angleThrown; this->currentServoAngle = angleThrown;} // Need to reset the curernt angle to prevent going to 0 or 180.
         void setTimeFromClosedToThrown_mS(unsigned long timeFromClosedToThrown_mS) {this->timeFromClosedToThrown_mS = timeFromClosedToThrown_mS;}
         void setTimeFromThrownToClosed_mS(unsigned long timeFromThrownToClosed_mS) {this->timeFromThrownToClosed_mS = timeFromThrownToClosed_mS;}
         void setThrownSensorTopic(const char* thrownSensorTopic) {this->thrownSensorTopic = thrownSensorTopic;}
@@ -54,8 +55,8 @@ class MQTTServo {
 
         const char* mqttBroker = "raspberrypi";
         uint16_t mqttPort = 1883;
-        int angleThrown = 60;
-        int angleClosed = 50;
+        int angleThrown = 89; // Problem if T == C !!!
+        int angleClosed = 91; // Problem if T == C !!!
         unsigned long timeFromThrownToClosed_mS = 1000;
         unsigned long timeFromClosedToThrown_mS = 1000;
         const char* thrownSensorTopic = "";

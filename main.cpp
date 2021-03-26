@@ -60,14 +60,14 @@ void setup() {
   //servo1->setClosedSensorTopic("trains/track/sensor/789");
   //servo1->setThrownSensorTopic("trains/track/sensor/456");
 
-  servo1->setAngleClosed(170);
-  servo1->setAngleThrown(10);
+  // servo1->setAngleClosed(80);
+  // servo1->setAngleThrown(100);
 
-  servo2->setAngleClosed(30);
-  servo2->setAngleThrown(150);
+  // servo2->setAngleClosed(80);
+  // servo2->setAngleThrown(100);
 
-  servo2->setTimeFromClosedToThrown_mS(500);
-  servo2->setTimeFromThrownToClosed_mS(2000);
+  servo2->setTimeFromClosedToThrown_mS(1000);
+  servo2->setTimeFromThrownToClosed_mS(1000);
 
 }
 

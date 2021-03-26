@@ -81,10 +81,13 @@ void MQTTContainer::loop() {
         this->publishStartupMessage();
 
         this->buildIndexWebPage();
-        this->buildServosWebPage();
+        this->buildServosWebPage2();
         this->buildBasicRelaysWebPage();
         this->buildAdvancedRelaysWebPage();
         this->buildSensorsWebPage();
+
+        // Set the callback function for websocket events from the client.
+        webSocket.onEvent(std::bind(&MQTTContainer::webSocketEvent, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 
         this->initialised = true;
     }
@@ -93,10 +96,6 @@ void MQTTContainer::loop() {
     mqttClient.loop();
     
     // Iterate over all pointer to MQTTSensor objects in the sensor list calling their loop() method.
-    // // Using the traditional for loop with an iterator.
-    // for (it = sensorList.begin(); it != sensorList.end(); it++) {
-    //     (*it)->update();
-    // }
     // Using a range-based for loop.
     for (MQTTServo* servo : servoList) {
 		servo->loop();
@@ -116,8 +115,6 @@ void MQTTContainer::loop() {
 
     server.handleClient();
 
-
-
     // Check to see if a new client has connected to the web socket.
     // If one has, then update the sensor state values in the browser.
     this ->handleNewWebSocketClient();
@@ -127,7 +124,7 @@ void MQTTContainer::handleNewWebSocketClient() {
     // This is called whenever a new client (i.e. browser) connects to the web socket.
     // We need to update all state values.
 
-   if (webSocket.connectedClients(true) != this->connectedClients) {
+   if (webSocket.connectedClients(false) != this->connectedClients) { // Setting ping to true caused continuous repeated pings.
        this->connectedClients = webSocket.connectedClients(true);
 
        // Update the web page with the current state of all servos.
@@ -309,7 +306,7 @@ void MQTTContainer::buildServosWebPage() {
     <script>
         var Socket;
         function init() {
-            Socket = new WebSocket('ws://' + window.location.hostname + ':81/servos');
+            Socket = new WebSocket('ws://' + window.location.hostname + ':81/');
             Socket.onmessage = function(event) {
                 console.log('message received: ' + event.data);
                 switch(event.data[0]) {
@@ -324,6 +321,10 @@ void MQTTContainer::buildServosWebPage() {
             }
             Socket.onopen = function(event) {console.log('Connection opened');}
             Socket.onerror = function(event) {console.log('Error');}
+        }
+        function sendAngle(id) {
+            Socket.send(id + document.getElementById(id).value);
+            console.log('message sent: ' + id + document.getElementById(id).value);
         }
     </script>
     </head>
@@ -363,6 +364,7 @@ void MQTTContainer::buildServosWebPage() {
     servosWebPage += "<td>Servo Topic</td>";
     servosWebPage += "<td width='200'>Servo State</td>";
     servosWebPage += "<td>Servo Angle</td>";
+    servosWebPage += "<td>Set Angle</td>";
     servosWebPage += "</tr>\n";
     
     // Add a table row for each servo.
@@ -380,16 +382,16 @@ void MQTTContainer::buildServosWebPage() {
         servosWebPage += "</td>";
 
         servosWebPage += "<td><div><input type='range' min='0' max='180' id='r"; 
-
         servosWebPage += servo->getPinNumber();
-
-
-
-    // <!-- <div><input type="range" min="0" max="1023" value="512" id="brightness" oninput="sendBrightness()" /></div> -->
-
-
-        servosWebPage += "' /></div>";
+        servosWebPage += "' ";
+        servosWebPage += "oninput='sendAngle(this.id)' />";
         servosWebPage += "</td>";
+
+        servosWebPage += "<td>";
+        servosWebPage += "<input type='button' value='Thrown' />";
+        servosWebPage += "<input type='button' value='Closed' />";
+        servosWebPage += "</td>";
+
         servosWebPage += "</tr>\n";
 	}
 
@@ -817,4 +819,196 @@ String MQTTContainer::getSensorsJSON() {
     retValue = retValue.substring(0, retValue.length() - 2);
 
     return retValue;
+}
+
+void MQTTContainer::webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
+
+    if (type == WStype_TEXT) {
+
+        // Determine the servo object.
+        uint8_t pinNumber = (uint8_t)payload[1] - 48; // TO DO need a better way to convert from ascii char to int. Also need to cope with 2 chars.
+        MQTTServo* servo = determineServo(pinNumber);
+
+        // Determine the angle.
+        uint16_t angle = (uint16_t) strtol ((const char*) &payload[2], NULL, 10); // this gets everything after character 2.
+
+        switch (payload[0]) {
+            case 'r':
+                // The angle slider has been moved.
+                Serial.printf("Angle changed for servo pin %i, %i\n", servo->getPinNumber(), angle);
+
+                break;
+            case 't':
+                // Set Thrown has been clicked.
+                Serial.printf("Set Thrown clicked for servo pin %i, %i\n", servo->getPinNumber(), angle);
+                servo->setAngleThrown(angle);
+
+                break;
+            case 'c':
+                // Set Closed has been clicked.
+                Serial.printf("Set Closed clicked for servo pin %i, %i\n", servo->getPinNumber(), angle);
+                servo->setAngleClosed(angle);
+
+                break;
+            default:
+                Serial.println ("Unknown response from web page.\n");
+                break;
+
+
+      }
+//     if (payload[0] == '#') {
+//       uint16_t brightness = (uint16_t) strtol ((const char*) &payload[1], NULL, 10); // this gets everything after character 1.
+//       brightness = 1024 - brightness;
+//     //   analogWrite(pin_led, brightness);
+//     //   Serial.printf("brightness=%i\n", brightness);
+//     } else {
+// //      for (uint16_t i=0; i<length; i++)
+// //        Serial.print((char) payload[i]);
+// //        Serial.println();
+//     }
+  }
+}
+
+MQTTServo* MQTTContainer::determineServo(uint8_t pinNumber) {
+    for (MQTTServo* servo : servoList) {
+        if (servo->getPinNumber() == pinNumber) {
+            return servo;
+        }
+    }
+
+    return NULL; // To keep the compiler happy.
+}
+
+void MQTTContainer::buildServosWebPage2() {
+    String WebPageHTML = R"rawliteral(
+    <!DOCTYPE HTML>
+    <html>
+    <head>
+    <title>MQTT Interface</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type = "text/css"> 
+        .textinput { 
+        width: 100px;
+        background-color: Gold;
+        }
+        .textreadonly {
+        width: 100px;
+        background-color: White;
+        }
+        .texthidden {
+        display: none;
+        }
+        table {
+        border: 1px solid blue;
+        border-spacing: 10px;
+        }
+        td {
+        vertical-align: middle;
+        border-bottom: 1px solid #ddd;
+        }
+    </style> 
+
+    <script>
+        var Socket;
+        function init() {
+            Socket = new WebSocket('ws://' + window.location.hostname + ':81/');
+            Socket.onmessage = function(event) {
+                console.log('message received: ' + event.data);
+                switch(event.data[0]) {
+                    case 's':
+                        document.getElementById('s' + event.data[1]).innerHTML = event.data.slice(2);
+                        break;
+                    
+                    case 'r':
+                        document.getElementById('r' + event.data[1]).value = event.data.slice(2);
+                        break;
+                }
+            }
+            Socket.onopen = function(event) {console.log('Connection opened');}
+            Socket.onerror = function(event) {console.log('Error');}
+        }
+        function sendAngle(id) {
+            Socket.send(id + document.getElementById(id).value);
+            console.log('message sent: ' + id + document.getElementById(id).value);
+        }
+        function setThrown(pinNumber) {
+            message = 't' + pinNumber + document.getElementById('r' + pinNumber).value;
+            Socket.send(message);
+            console.log('message sent: ' + message);
+        }
+        function setClosed(pinNumber) {
+            message = 'c' + pinNumber + document.getElementById('r' + pinNumber).value;
+            Socket.send(message);
+            console.log('message sent: ' + message);
+        }
+    </script>
+    </head>
+    <body onload='javascript:init()'>
+
+    <br />
+    <a href='/'>Home</a>
+    <br />
+    <br />
+    Servos
+    <br />
+    <a href="basicRelays">Basic Relays</a>
+    <br />
+    <a href="advancedRelays">Advanced Relays</a>
+    <br />
+    <a href="sensors">Sensors</a>
+    <br />
+    <br />
+
+    <table>
+
+    <tr>
+    <td>Servo Pin</td>
+    <td>Servo Topic</td>
+    <td width='200'>Servo State</td>
+    <td>Servo Angle</td>
+    <td>Set Angle</td>
+    </tr>
+
+    %REPEATING_TEXT%
+
+    </table>
+    </body>
+    </html>
+
+    )rawliteral";
+
+    servosWebPage = WebPageHTML;
+    servosWebPage.replace("%REPEATING_TEXT%", getRepeatingText());
+}
+
+String MQTTContainer::getRepeatingText() {
+    String s = "";
+    char PinNumber[10];
+
+    String RepeatingHTML = R"rawliteral(
+        <tr>
+        <td>%PIN_NUMBER%</td>
+        <td>%TURNOUT_TOPIC%</td>
+        <td><div id='s%PIN_NUMBER%'></div></td>
+        <td><div><input type='range' min='0' max='180' id='r%PIN_NUMBER%' oninput='sendAngle(this.id)' /></td>
+        <td>
+        <input type='button' id='c%PIN_NUMBER%' value='Closed' onclick="setClosed('%PIN_NUMBER%')" />
+        <input type='button' id='t%PIN_NUMBER%' value='Thrown' onclick="setThrown('%PIN_NUMBER%')" />
+        </td>
+        </tr>
+    )rawliteral";
+
+    // Add a table row for each servo.
+    for (MQTTServo* servo : servoList) {
+
+        String c = RepeatingHTML;
+        sprintf(PinNumber, "%i", servo->getPinNumber());
+
+        c.replace("%PIN_NUMBER%", PinNumber);
+        c.replace("%TURNOUT_TOPIC%", servo->getTurnoutTopic());
+
+        s += c;
+	}
+
+    return s;
 }

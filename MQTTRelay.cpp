@@ -7,11 +7,11 @@ Advanced - subscribes to two topics - one topic ACTIVE operates the realy, the o
 
 extern WebSocketsServer webSocket;
 
-MQTTRelay::MQTTRelay(uint8_t pinNumber, const char* relayTopic) {
+MQTTRelay::MQTTRelay(uint8_t pinNumber, const char* relayTopic, PCF8575* pcf8575) {
     // Store the parameters.
     this->pinNumber = pinNumber;
     this->relayTopic = relayTopic;
-    this->pcf8575 = NULL;
+    this->pcf8575 = pcf8575;
 
     configurePin();
 
@@ -19,12 +19,12 @@ MQTTRelay::MQTTRelay(uint8_t pinNumber, const char* relayTopic) {
     strcpy(this->currentState, "Released");
 }
 
-MQTTRelay::MQTTRelay(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic) {
+MQTTRelay::MQTTRelay(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic, PCF8575* pcf8575) {
     // Store the parameters.
     this->pinNumber = pinNumber;
     this->relayOperateTopic = relayOperateTopic;
     this->relayReleaseTopic = relayReleaseTopic;
-    this->pcf8575 = NULL;
+    this->pcf8575 = pcf8575;
 
     configurePin();
 
