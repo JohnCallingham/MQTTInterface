@@ -957,11 +957,13 @@ void MQTTContainer::buildServosWebPage2() {
             message = 't' + pinNumber + document.getElementById('r' + pinNumber).value;
             Socket.send(message);
             console.log('message sent: ' + message);
+            alert('Pin number ' + pinNumber + ' thrown angle set to ' + document.getElementById('r' + pinNumber).value + ' degrees.');
         }
         function setClosed(pinNumber) {
             message = 'c' + pinNumber + document.getElementById('r' + pinNumber).value;
             Socket.send(message);
             console.log('message sent: ' + message);
+            alert('Pin number ' + pinNumber + ' closed angle set to ' + document.getElementById('r' + pinNumber).value + ' degrees.');
         }
     </script>
     </head>
