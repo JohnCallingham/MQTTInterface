@@ -55,8 +55,8 @@ class MQTTServo {
 
         const char* mqttBroker = "raspberrypi";
         uint16_t mqttPort = 1883;
-        int angleThrown = 89; // Problem if T == C !!!
-        int angleClosed = 91; // Problem if T == C !!!
+        int angleThrown = 90;
+        int angleClosed = 90;
         unsigned long timeFromThrownToClosed_mS = 1000;
         unsigned long timeFromClosedToThrown_mS = 1000;
         const char* thrownSensorTopic = "";

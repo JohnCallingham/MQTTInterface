@@ -32,7 +32,9 @@ void MQTTServo::messageReceived(receivedMessageEnum message) {
         case stateUndefined:
             // Start the servo midway between closed and thrown.
             // Accomodates either the thrown or closed angle being the largest.
-            if (this->angleThrown > this->angleClosed) {
+            if (this->angleThrown == this->angleClosed) {
+                this->currentServoAngle = this->angleThrown;
+            } else if (this->angleThrown > this->angleClosed) {
                 this->currentServoAngle = this->angleClosed + (abs(this->angleClosed - this->angleThrown)/2);
             } else {
                 this->currentServoAngle = this->angleThrown + (abs(this->angleClosed - this->angleThrown)/2);
@@ -181,16 +183,18 @@ void MQTTServo::adjustServoPosition() {
 void MQTTServo::adjustMovingTowardsClosed() {
     // Is it time to make another movement?
     if ((millis() - this->lastTimeServoMoved) > this->movePeriodToClosed_mS) {
-        // Yes, so update the servo angle.
-        if (this->angleThrown > this->angleClosed) {
-            if (this->currentServoAngle > 0) {
-                this->currentServoAngle--;
-                updateWebPage();
-            }
-        } else {
-            if (this->currentServoAngle < 180) {
-                this->currentServoAngle++;
-                updateWebPage();
+        // Yes, so update the servo angle, unless we are already there.
+        if (this->currentServoAngle != this->angleClosed) {
+            if (this->angleThrown > this->angleClosed) {
+                if (this->currentServoAngle > 0) {
+                    this->currentServoAngle--;
+                    updateWebPage();
+                }
+            } else {
+                if (this->currentServoAngle < 180) {
+                    this->currentServoAngle++;
+                    updateWebPage();
+                }
             }
         }
 
@@ -212,16 +216,18 @@ void MQTTServo::adjustMovingTowardsClosed() {
 void MQTTServo::adjustMovingTowardsThrown() {
     // Is it time to make another movement?
     if ((millis() - this->lastTimeServoMoved) > this->movePeriodToThrown_mS) {
-        // Yes, so update the servo angle.
-        if (this->angleThrown > this->angleClosed) {
-            if (this->currentServoAngle < 180) {
-                this->currentServoAngle++;
-                updateWebPage();
-            }
-        } else {
-            if (this->currentServoAngle > 0) {
-                this->currentServoAngle--;
-                updateWebPage();
+        // Yes, so update the servo angle, unless we are already there.
+        if (this->currentServoAngle != this->angleThrown) {
+            if (this->angleThrown > this->angleClosed) {
+                if (this->currentServoAngle < 180) {
+                    this->currentServoAngle++;
+                    updateWebPage();
+                }
+            } else {
+                if (this->currentServoAngle > 0) {
+                    this->currentServoAngle--;
+                    updateWebPage();
+                }
             }
         }
 
@@ -243,8 +249,13 @@ void MQTTServo::adjustMovingTowardsThrown() {
 void MQTTServo::calculatePeriods() {
     // Calculates how often to move the servo to achieve a complete transition from one state to another in timeFrom..._mS.
     // Accomodates either the thrown or closed angle being the largest.
-    movePeriodToClosed_mS = timeFromThrownToClosed_mS/abs(angleClosed - angleThrown);
-    movePeriodToThrown_mS = timeFromClosedToThrown_mS/abs(angleClosed - angleThrown);
+    if (this->angleClosed == this->angleThrown) {
+        movePeriodToClosed_mS = timeFromThrownToClosed_mS / 50; // TO DO sort a more sensible value.
+        movePeriodToThrown_mS = timeFromClosedToThrown_mS / 50; // TO DO still goes to 180 when setting both T and C !!!
+    } else {
+        movePeriodToClosed_mS = timeFromThrownToClosed_mS/abs(angleClosed - angleThrown);
+        movePeriodToThrown_mS = timeFromClosedToThrown_mS/abs(angleClosed - angleThrown);
+    }
 }
 
 void MQTTServo::publishMQTTSensor(const char* topic, const char* payload) {
