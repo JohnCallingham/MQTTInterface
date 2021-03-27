@@ -31,15 +31,18 @@ MQTTServo* servo1 = container.addServo(5, "trains/track/turnout/123", pwm);
 MQTTServo* servo2 = container.addServo(4, "trains/track/turnout/124");
 
 // Create a pointer to an MQTTRelay object which represents a basic relay connected to an 8266 GPIO pin. Will actually turn the built in LED on and off for testing.
-MQTTRelay* relay1 = container.addRelay(LED_BUILTIN, "trains/track/light/L001");
+//MQTTRelay* relay1 = container.addRelay(LED_BUILTIN, "trains/track/light/L001");
 
 // Create a pointer to an MQTTRelay object which represents a advanced relay connected to the I2C I/O expander.
-MQTTRelay* relay2 = container.addRelay(1, "trains/track/sensor/456", "trains/track/sensor/789", pcf8575);
+//MQTTRelay* relay2 = container.addRelay(1, "trains/track/sensor/456", "trains/track/sensor/789", pcf8575);
+
+// Create a pointer to an MQTTRelay object which represents a advanced relay connected to an 8266 GPIO pin. Will actually turn the built in LED on and off for testing.
+MQTTRelay* relay3 = container.addRelay(LED_BUILTIN, "trains/track/sensor/456", "trains/track/sensor/789");
 
 // Create a pointer to an MQTTSensor object which is connected directly to an 8266 GPIO pin.
 MQTTSensor* sensor1 = container.addSensor(5, "trains/track/sensor/GPIO5");
 
-// Create a pointer to an MQTTSensor object which is connected directly to the I2C I/O expander.
+// Create a pointer to an MQTTSensor object which is connected to the I2C I/O expander.
 //MQTTSensor* sensor2 = container.addSensor(5, "trains/track/sensor/GPIO5", pcf8575);
 
 // Forward declarations.
@@ -57,17 +60,17 @@ void setup() {
 
   container.setStartupTopic("events");
 
-  //servo1->setClosedSensorTopic("trains/track/sensor/789");
-  //servo1->setThrownSensorTopic("trains/track/sensor/456");
+  servo1->setClosedSensorTopic("trains/track/sensor/456");
+  servo1->setThrownSensorTopic("trains/track/sensor/789");
 
-  // servo1->setAngleClosed(80);
-  // servo1->setAngleThrown(100);
+  servo1->setAngleClosed(80);
+  servo1->setAngleThrown(100);
 
   // servo2->setAngleClosed(80);
   // servo2->setAngleThrown(100);
 
-  servo2->setTimeFromClosedToThrown_mS(1000);
-  servo2->setTimeFromThrownToClosed_mS(1000);
+  // servo2->setTimeFromClosedToThrown_mS(1000);
+  // servo2->setTimeFromThrownToClosed_mS(1000);
 
 }
 

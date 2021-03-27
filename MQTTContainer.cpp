@@ -837,6 +837,20 @@ void MQTTContainer::webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
                 // The angle slider has been moved.
                 Serial.printf("Angle changed for servo pin %i, %i\n", servo->getPinNumber(), angle);
 
+                //TO DO - need to move the servo when the user moves the slider.
+
+                break;
+            case 'e':
+                // Test Close has been clicked.
+                Serial.printf("Test Close clicked for servo pin %i\n", servo->getPinNumber());
+                servo->messageReceived(MQTTServo::receivedMessageEnum::messageClosed);
+
+                break;
+            case 'f':
+                // Test Throw has been clicked.
+                Serial.printf("Test Throw clicked for servo pin %i\n", servo->getPinNumber());
+                servo->messageReceived(MQTTServo::receivedMessageEnum::messageThrown);
+
                 break;
             case 't':
                 // Set Thrown has been clicked.
@@ -931,6 +945,14 @@ void MQTTContainer::buildServosWebPage2() {
             Socket.send(id + document.getElementById(id).value);
             console.log('message sent: ' + id + document.getElementById(id).value);
         }
+        function testClose(id) {
+            Socket.send(id);
+            console.log('message sent: ' + id);
+        }
+        function testThrow(id) {
+            Socket.send(id);
+            console.log('message sent: ' + id);
+        }
         function setThrown(pinNumber) {
             message = 't' + pinNumber + document.getElementById('r' + pinNumber).value;
             Socket.send(message);
@@ -964,6 +986,7 @@ void MQTTContainer::buildServosWebPage2() {
     <tr>
     <td>Servo Pin</td>
     <td>Servo Topic</td>
+    <td>Servo Test</td>
     <td width='200'>Servo State</td>
     <td>Servo Angle</td>
     <td>Set Angle</td>
@@ -989,6 +1012,10 @@ String MQTTContainer::getRepeatingText() {
         <tr>
         <td>%PIN_NUMBER%</td>
         <td>%TURNOUT_TOPIC%</td>
+        <td>
+        <input type='button' id='e%PIN_NUMBER%' value='Close' onclick="testClose(this.id)" />
+        <input type='button' id='f%PIN_NUMBER%' value='Throw' onclick="testThrow(this.id)" />
+        </td>
         <td><div id='s%PIN_NUMBER%'></div></td>
         <td><div><input type='range' min='0' max='180' id='r%PIN_NUMBER%' oninput='sendAngle(this.id)' /></td>
         <td>
