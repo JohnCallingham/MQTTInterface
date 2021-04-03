@@ -13,6 +13,14 @@ MQTTRelay::MQTTRelay(uint8_t pinNumber, const char* relayTopic, PCF8575* pcf8575
     this->relayTopic = relayTopic;
     this->pcf8575 = pcf8575;
 
+    if (this->pcf8575 == NULL) {
+        sprintf(this->pinString, "N%02i", this->pinNumber);
+        sprintf(this->pinID, "N%02i", this->pinNumber);
+    } else {
+        sprintf(this->pinString, "X%02i", this->pinNumber);
+        sprintf(this->pinID, "X%02i", this->pinNumber + 16);
+    }
+
     configurePin();
 
     // Initialise to released.
@@ -25,6 +33,14 @@ MQTTRelay::MQTTRelay(uint8_t pinNumber, const char* relayOperateTopic, const cha
     this->relayOperateTopic = relayOperateTopic;
     this->relayReleaseTopic = relayReleaseTopic;
     this->pcf8575 = pcf8575;
+
+    if (this->pcf8575 == NULL) {
+        sprintf(this->pinString, "N%02i", this->pinNumber);
+        sprintf(this->pinID, "N%02i", this->pinNumber);
+    } else {
+        sprintf(this->pinString, "X%02i", this->pinNumber);
+        sprintf(this->pinID, "X%02i", this->pinNumber + 16);
+    }
 
     configurePin();
 
@@ -78,7 +94,9 @@ void MQTTRelay::updateWebPage() {
     // Update the web socket.
     char str[60];
 
-    sprintf(str, "%i%s", this->pinNumber, this->currentState);
+    // sprintf(str, "%i%s", this->pinNumber, this->currentState);
+    // sprintf(str, "s%s%s", this->pinString, this->currentState);
+    sprintf(str, "s%s%s", this->pinID, this->currentState);
 
     webSocket.broadcastTXT(str);
 }

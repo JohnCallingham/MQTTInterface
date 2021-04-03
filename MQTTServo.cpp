@@ -12,6 +12,12 @@ MQTTServo::MQTTServo(uint8_t pinNumber, const char* turnoutTopic, Adafruit_PWMSe
     this->turnoutTopic = turnoutTopic;
     this->pwm = pwm;
 
+    if (this->pwm == NULL) {
+        sprintf(this->pinString, "N%02i", this->pinNumber);
+    } else {
+        sprintf(this->pinString, "X%02i", this->pinNumber);
+    }
+
     // Configure the servo pin.
     configurePin();
 }
@@ -125,25 +131,29 @@ void MQTTServo::messageReceived(receivedMessageEnum message) {
 
 void MQTTServo::handleStateTransition(stateEnum newState, const char* thrownSensorMessage, const char* closedSensorMessage) {
     // Serial.printf("State changed from '%i' to '%i'\n", currentState, newState);
-    Serial.printf("Servo on pin %i state changed from '%s' to '%s'\n", this->pinNumber, stateString(this->currentState), stateString(newState));
+    Serial.printf("Servo on pin %s state changed from '%s' to '%s'\n", this->pinString, stateString(this->currentState), stateString(newState));
 
     this->currentState = newState;
 
     publishMQTTSensor(thrownSensorTopic, thrownSensorMessage);
     publishMQTTSensor(closedSensorTopic, closedSensorMessage);
 
-    updateWebPage();
+    updateWebPageState();
 }
 
-void MQTTServo::updateWebPage() {
+void MQTTServo::updateWebPageState() {
     // Update the web socket.
     char strState[60];
+
+    sprintf(strState, "s%s%s", this->pinString, stateString(this->currentState));
+    webSocket.broadcastTXT(strState);
+}
+
+void MQTTServo::updateWebPageAngle() {
+    // Update the web socket.
     char strAngle[60];
 
-    sprintf(strState, "s%i%s", this->pinNumber, stateString(this->currentState));
-    webSocket.broadcastTXT(strState);
-
-    sprintf(strAngle, "r%i%i", this->pinNumber, this->currentServoAngle);
+    sprintf(strAngle, "r%s%i", this->pinString, this->currentServoAngle);
     webSocket.broadcastTXT(strAngle);
 }
 
@@ -188,12 +198,12 @@ void MQTTServo::adjustMovingTowardsClosed() {
             if (this->angleThrown > this->angleClosed) {
                 if (this->currentServoAngle > 0) {
                     this->currentServoAngle--;
-                    updateWebPage();
+                    updateWebPageAngle();
                 }
             } else {
                 if (this->currentServoAngle < 180) {
                     this->currentServoAngle++;
-                    updateWebPage();
+                    updateWebPageAngle();
                 }
             }
         }
@@ -208,7 +218,8 @@ void MQTTServo::adjustMovingTowardsClosed() {
             return;
         } else {
             // Not yet, so move the servo.
-            Serial.printf ("Servo on pin %i, Turnout %s, Servo angle %i\n", this->pinNumber, turnoutTopic, currentServoAngle);
+            Serial.printf ("Servo on pin %s, Turnout %s, Servo angle %i\n", this->pinString, turnoutTopic, currentServoAngle);
+            updatePin(currentServoAngle);
         }
     }
 }
@@ -221,12 +232,12 @@ void MQTTServo::adjustMovingTowardsThrown() {
             if (this->angleThrown > this->angleClosed) {
                 if (this->currentServoAngle < 180) {
                     this->currentServoAngle++;
-                    updateWebPage();
+                    updateWebPageAngle();
                 }
             } else {
                 if (this->currentServoAngle > 0) {
                     this->currentServoAngle--;
-                    updateWebPage();
+                    updateWebPageAngle();
                 }
             }
         }
@@ -241,7 +252,8 @@ void MQTTServo::adjustMovingTowardsThrown() {
             return;
         } else {
             // Not yet, so move the servo.
-            Serial.printf ("Servo on pin %i, Turnout %s, Servo angle %i\n", this->pinNumber, turnoutTopic, currentServoAngle);
+            Serial.printf ("Servo on pin %s, Turnout %s, Servo angle %i\n", this->pinString, turnoutTopic, currentServoAngle);
+            updatePin(currentServoAngle);
         }
     }
 }
@@ -284,6 +296,13 @@ void MQTTServo::updatePin(uint8_t newValue) {
         
     } else {
         // Using the I/O expander.
+
+        // Convert angle to off position out of 4096.
+        // 0 degrees is 110. 180 degrees is 500.
+
+        //val = map(val, 0, 180, 110, 500);
+        this->pwm->setPWM(this->pinNumber, 0, map(newValue, 0, 180, 110, 500));
+
         
     }
 }

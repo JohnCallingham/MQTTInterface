@@ -81,7 +81,7 @@ void MQTTContainer::loop() {
         this->publishStartupMessage();
 
         this->buildIndexWebPage();
-        this->buildServosWebPage2();
+        this->buildServosWebPage();
         this->buildBasicRelaysWebPage();
         this->buildAdvancedRelaysWebPage();
         this->buildSensorsWebPage();
@@ -129,7 +129,7 @@ void MQTTContainer::handleNewWebSocketClient() {
 
        // Update the web page with the current state of all servos.
        for (MQTTServo* servo : this->servoList) {
-           servo->updateWebPage();
+           servo->updateWebPageState();
        }
 
        // Update the web page with the current state of all basic relays.
@@ -137,7 +137,7 @@ void MQTTContainer::handleNewWebSocketClient() {
            relay->updateWebPage();
        }
 
-       // Update the web page with the current state of all advanced.
+       // Update the web page with the current state of all advanced relays.
        for (MQTTRelay* relay : this->relayAdvancedList) {
            relay->updateWebPage();
        }
@@ -206,6 +206,7 @@ void MQTTContainer::connectToMQTT() {
 }
 
 void MQTTContainer::callback(char* topic, byte* payload, unsigned int length) {
+    // This is the MQTT callback function.
     char charPayload[20];
     unsigned int i;
     MQTTServo::receivedMessageEnum message;
@@ -253,29 +254,8 @@ void MQTTContainer::callback(char* topic, byte* payload, unsigned int length) {
 }
 
 void MQTTContainer::buildIndexWebPage() {
-    const char WebPageHTML[] = R"rawliteral(
-    <!DOCTYPE HTML>
-    <html>
-    <head>
-    <title>MQTT Interface</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    </head>
-    <br />
-    <a href="servos">Servos</a>
-    <br />
-    <a href="basicRelays">Basic Relays</a>
-    <br />
-    <a href="advancedRelays">Advanced Relays</a>
-    <br />
-    <a href="sensors">Sensors</a>
-    <br />
-    )rawliteral";
-
-    indexWebPage += WebPageHTML;
-}
-
-void MQTTContainer::buildServosWebPage() {
-    const char WebPageHTML[] = R"rawliteral(
+    // const char WebPageHTML[] = R"rawliteral(
+    String WebPageHTML = R"rawliteral(
     <!DOCTYPE HTML>
     <html>
     <head>
@@ -302,102 +282,55 @@ void MQTTContainer::buildServosWebPage() {
         border-bottom: 1px solid #ddd;
         }
     </style> 
-
-    <script>
-        var Socket;
-        function init() {
-            Socket = new WebSocket('ws://' + window.location.hostname + ':81/');
-            Socket.onmessage = function(event) {
-                console.log('message received: ' + event.data);
-                switch(event.data[0]) {
-                    case 's':
-                        document.getElementById('s' + event.data[1]).innerHTML = event.data.slice(2);
-                        break;
-                    
-                    case 'r':
-                        document.getElementById('r' + event.data[1]).value = event.data.slice(2);
-                        break;
-                }
-            }
-            Socket.onopen = function(event) {console.log('Connection opened');}
-            Socket.onerror = function(event) {console.log('Error');}
-        }
-        function sendAngle(id) {
-            Socket.send(id + document.getElementById(id).value);
-            console.log('message sent: ' + id + document.getElementById(id).value);
-        }
-    </script>
     </head>
-    <body onload='javascript:init()'>
+
+    <body>
 
     <br />
-    <a href='/'>Home</a>
+    Home
     <br />
     <br />
-    Servos
+    <a href="sensors">Sensors</a>
     <br />
     <a href="basicRelays">Basic Relays</a>
     <br />
     <a href="advancedRelays">Advanced Relays</a>
     <br />
-    <a href="sensors">Sensors</a>
+    <a href="servos">Servos</a>
     <br />
     <br />
+
+    <table>
+
+    <tr>
+    <td>Name</td>
+    <td>ID</td>
+    <td>IP</td>
+    </tr>
+
+    <tr>
+    <td>
+    MQTT Interface
+    </td>
+    <td>
+    %ID%
+    </td>
+    <td>
+    %IP%
+    </td>
+    </tr>
+
+    </table>
+    </body>
+    </html>
 
     )rawliteral";
 
+    // WebPageHTML.replace("%ID%", ESP.getChipId());
+    // WebPageHTML.replace("%IP%", WiFi.localIP());
 
-    servosWebPage += WebPageHTML;
-
-    // servosWebPage += "</head>";
-    // servosWebPage += "<body onload='javascript:init()'>";
-
-    // servosWebPage += "<br />";
-    // servosWebPage += "<a href='/'>Home</a>";
-    // servosWebPage += "<br />";
-    // servosWebPage += "<br />";
-
-    servosWebPage += "<table>\n";
-
-    servosWebPage += "<tr>";
-    servosWebPage += "<td>Servo Pin</td>";
-    servosWebPage += "<td>Servo Topic</td>";
-    servosWebPage += "<td width='200'>Servo State</td>";
-    servosWebPage += "<td>Servo Angle</td>";
-    servosWebPage += "<td>Set Angle</td>";
-    servosWebPage += "</tr>\n";
-    
-    // Add a table row for each servo.
-    for (MQTTServo* servo : servoList) {
-        servosWebPage += "<tr>";
-        servosWebPage += "<td>";
-		servosWebPage += String(servo->getPinNumber());
-        servosWebPage += "</td>";
-        servosWebPage += "<td>";
-		servosWebPage += String(servo->getTurnoutTopic());
-        servosWebPage += "</td>";
-        servosWebPage += "<td><div id='s";
-        servosWebPage += servo->getPinNumber();
-        servosWebPage += "'></div>";
-        servosWebPage += "</td>";
-
-        servosWebPage += "<td><div><input type='range' min='0' max='180' id='r"; 
-        servosWebPage += servo->getPinNumber();
-        servosWebPage += "' ";
-        servosWebPage += "oninput='sendAngle(this.id)' />";
-        servosWebPage += "</td>";
-
-        servosWebPage += "<td>";
-        servosWebPage += "<input type='button' value='Thrown' />";
-        servosWebPage += "<input type='button' value='Closed' />";
-        servosWebPage += "</td>";
-
-        servosWebPage += "</tr>\n";
-	}
-
-    servosWebPage += "</table>";
-    servosWebPage += "</body>";
-    servosWebPage += "</html>";
+    //indexWebPage += WebPageHTML;
+    indexWebPage = replaceAll(WebPageHTML);
 }
 
 void MQTTContainer::buildBasicRelaysWebPage() {
@@ -434,8 +367,11 @@ void MQTTContainer::buildBasicRelaysWebPage() {
         function init() {
             Socket = new WebSocket('ws://' + window.location.hostname + ':81/basicRelays');
             Socket.onmessage = function(event) {
-                console.log('message received');
-                document.getElementById(event.data[0]).innerHTML = event.data.slice(1);
+                console.log('message received: ' + event.data);
+                try {
+                    document.getElementById(event.data.slice(0,4)).innerHTML = event.data.slice(4);
+                }
+                catch (e) {}
             }
             Socket.onopen = function(event) {console.log('Connection opened');}
             Socket.onerror = function(event) {console.log('Error');}
@@ -448,13 +384,13 @@ void MQTTContainer::buildBasicRelaysWebPage() {
     <a href='/'>Home</a>
     <br />
     <br />
-    <a href="servos">Servos</a>
+    <a href="sensors">Sensors</a>
     <br />
     Basic Relays
     <br />
     <a href="advancedRelays">Advanced Relays</a>
     <br />
-    <a href="sensors">Sensors</a>
+    <a href="servos">Servos</a>
     <br />
     <br />
 
@@ -462,14 +398,6 @@ void MQTTContainer::buildBasicRelaysWebPage() {
 
 
     basicRelaysWebPage += WebPageHTML;
-
-    // basicRelaysWebPage += "</head>";
-    // basicRelaysWebPage += "<body onload='javascript:init()'>";
-
-    // basicRelaysWebPage += "<br />";
-    // basicRelaysWebPage += "<a href='/'>Home</a>";
-    // basicRelaysWebPage += "<br />";
-    // basicRelaysWebPage += "<br />";
 
     basicRelaysWebPage += "<table>\n";
 
@@ -483,13 +411,14 @@ void MQTTContainer::buildBasicRelaysWebPage() {
     for (MQTTRelay* relay : relayBasicList) {
         basicRelaysWebPage += "<tr>";
         basicRelaysWebPage += "<td>";
-		basicRelaysWebPage += String(relay->getPinNumber());
+		basicRelaysWebPage += relay->getPinString();
         basicRelaysWebPage += "</td>";
         basicRelaysWebPage += "<td>";
 		basicRelaysWebPage += String(relay->getRelayTopic());
         basicRelaysWebPage += "</td>";
-        basicRelaysWebPage += "<td><div id='";
-        basicRelaysWebPage += relay->getPinNumber();
+        basicRelaysWebPage += "<td><div id='s";
+        //basicRelaysWebPage += relay->getPinString();
+        basicRelaysWebPage += relay->getPinID();
         basicRelaysWebPage += "'></div>";
         basicRelaysWebPage += "</td>";
         basicRelaysWebPage += "</tr>\n";
@@ -532,10 +461,13 @@ void MQTTContainer::buildAdvancedRelaysWebPage() {
     <script>
         var Socket;
         function init() {
-            Socket = new WebSocket('ws://' + window.location.hostname + ':81/advancedRelays');
+            Socket = new WebSocket('ws://' + window.location.hostname + ':81/');
             Socket.onmessage = function(event) {
-                console.log('message received');
-                document.getElementById(event.data[0]).innerHTML = event.data.slice(1);
+                console.log('message received ' + event.data);
+                try {
+                    document.getElementById(event.data.slice(0,4)).innerHTML = event.data.slice(4);
+                }
+                catch (e) {}
             }
             Socket.onopen = function(event) {console.log('Connection opened');}
             Socket.onerror = function(event) {console.log('Error');}
@@ -548,13 +480,13 @@ void MQTTContainer::buildAdvancedRelaysWebPage() {
     <a href='/'>Home</a>
     <br />
     <br />
-    <a href="servos">Servos</a>
+    <a href="sensors">Sensors</a>
     <br />
     <a href="basicRelays">Basic Relays</a>
     <br />
     Advanced Relays
     <br />
-    <a href="sensors">Sensors</a>
+    <a href="servos">Servos</a>
     <br />
     <br />
 
@@ -584,7 +516,7 @@ void MQTTContainer::buildAdvancedRelaysWebPage() {
     for (MQTTRelay* relay : relayAdvancedList) {
         advancedRelaysWebPage += "<tr>";
         advancedRelaysWebPage += "<td>";
-		advancedRelaysWebPage += String(relay->getPinNumber());
+		advancedRelaysWebPage += relay->getPinString();
         advancedRelaysWebPage += "</td>";
         advancedRelaysWebPage += "<td>";
 		advancedRelaysWebPage += String(relay->getRelayOperateTopic());
@@ -592,8 +524,9 @@ void MQTTContainer::buildAdvancedRelaysWebPage() {
         advancedRelaysWebPage += "<td>";
 		advancedRelaysWebPage += String(relay->getRelayReleaseTopic());
         advancedRelaysWebPage += "</td>";
-        advancedRelaysWebPage += "<td><div id='";
-        advancedRelaysWebPage += relay->getPinNumber();
+        advancedRelaysWebPage += "<td><div id='s";
+        //advancedRelaysWebPage += relay->getPinString();
+        advancedRelaysWebPage += relay->getPinID();
         advancedRelaysWebPage += "'></div>";
         advancedRelaysWebPage += "</td>";
         advancedRelaysWebPage += "</tr>\n";
@@ -638,8 +571,11 @@ void MQTTContainer::buildSensorsWebPage() {
         function init() {
             Socket = new WebSocket('ws://' + window.location.hostname + ':81/sensors');
             Socket.onmessage = function(event) {
-                console.log('message received');
-                document.getElementById(event.data[0]).innerHTML = event.data.slice(1);
+                console.log('message received: ' + event.data);
+                try {
+                    document.getElementById(event.data.slice(0,4)).innerHTML = event.data.slice(4);
+                }
+                catch (e) {}
             }
             Socket.onopen = function(event) {console.log('Connection opened');}
             Socket.onerror = function(event) {console.log('Error');}
@@ -652,13 +588,13 @@ void MQTTContainer::buildSensorsWebPage() {
     <a href='/'>Home</a>
     <br />
     <br />
-    <a href="servos">Servos</a>
+    Sensors
     <br />
     <a href="basicRelays">Basic Relays</a>
     <br />
     <a href="advancedRelays">Advanced Relays</a>
     <br />
-    Sensors
+    <a href="servos">Servos</a>
     <br />
     <br />
        
@@ -667,14 +603,6 @@ void MQTTContainer::buildSensorsWebPage() {
 
 
     sensorsWebPage += WebPageHTML;
-
-    // sensorsWebPage += "</head>";
-    // sensorsWebPage += "<body onload='javascript:init()'>";
-
-    // sensorsWebPage += "<br />";
-    // sensorsWebPage += "<a href='/'>Home</a>";
-    // sensorsWebPage += "<br />";
-    // sensorsWebPage += "<br />";
 
     sensorsWebPage += "<table>\n";
 
@@ -688,13 +616,14 @@ void MQTTContainer::buildSensorsWebPage() {
     for (MQTTSensor* sensor : sensorList) {
         sensorsWebPage += "<tr>";
         sensorsWebPage += "<td>";
-		sensorsWebPage += String(sensor->getPinNumber());
+		sensorsWebPage += sensor->getPinString();
         sensorsWebPage += "</td>";
         sensorsWebPage += "<td>";
 		sensorsWebPage += String(sensor->getSensorTopic());
         sensorsWebPage += "</td>";
-        sensorsWebPage += "<td><div id='";
-        sensorsWebPage += sensor->getPinNumber();
+        sensorsWebPage += "<td><div id='s";
+        // sensorsWebPage += sensor->getPinString();
+        sensorsWebPage += sensor->getPinID();
         sensorsWebPage += "'></div>";
         sensorsWebPage += "</td>";
         sensorsWebPage += "</tr>\n";
@@ -822,45 +751,54 @@ String MQTTContainer::getSensorsJSON() {
 }
 
 void MQTTContainer::webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
+    // payload[0] = command. payload[1] = N or X. payload[2-3] = port (00-99). payload[4-] = message.
+    char pinString[4];
 
     if (type == WStype_TEXT) {
 
         // Determine the servo object.
-        uint8_t pinNumber = (uint8_t)payload[1] - 48; // TO DO need a better way to convert from ascii char to int. Also need to cope with 2 chars.
-        MQTTServo* servo = determineServo(pinNumber);
+        // uint8_t pinNumber = (uint8_t)payload[1] - 48; // TO DO need a better way to convert from ascii char to int. Also need to cope with 2 chars.
+        // MQTTServo* servo = determineServo(pinNumber);
+        for (int i=1; i<4; i++) {
+            pinString[i - 1] = (char)payload[i];
+        }
+        pinString[3] = '\0';
+
+        MQTTServo* servo = determineServo(pinString);
 
         // Determine the angle.
-        uint16_t angle = (uint16_t) strtol ((const char*) &payload[2], NULL, 10); // this gets everything after character 2.
+        uint16_t angle = (uint16_t) strtol ((const char*) &payload[4], NULL, 10); // this gets everything from character 4 onwards.
 
         switch (payload[0]) {
             case 'r':
                 // The angle slider has been moved.
-                Serial.printf("Angle changed for servo pin %i, %i\n", servo->getPinNumber(), angle);
+                Serial.printf("Angle changed for servo pin %s, %i\n", servo->getPinString(), angle);
 
                 //TO DO - need to move the servo when the user moves the slider.
+                servo->updatePin(angle);
 
                 break;
             case 'e':
                 // Test Close has been clicked.
-                Serial.printf("Test Close clicked for servo pin %i\n", servo->getPinNumber());
+                Serial.printf("Test Close clicked for servo pin %s\n", servo->getPinString());
                 servo->messageReceived(MQTTServo::receivedMessageEnum::messageClosed);
 
                 break;
             case 'f':
                 // Test Throw has been clicked.
-                Serial.printf("Test Throw clicked for servo pin %i\n", servo->getPinNumber());
+                Serial.printf("Test Throw clicked for servo pin %s\n", servo->getPinString());
                 servo->messageReceived(MQTTServo::receivedMessageEnum::messageThrown);
 
                 break;
             case 't':
                 // Set Thrown has been clicked.
-                Serial.printf("Set Thrown clicked for servo pin %i, %i\n", servo->getPinNumber(), angle);
+                Serial.printf("Set Thrown clicked for servo pin %s, %i\n", servo->getPinString(), angle);
                 servo->setAngleThrown(angle);
 
                 break;
             case 'c':
                 // Set Closed has been clicked.
-                Serial.printf("Set Closed clicked for servo pin %i, %i\n", servo->getPinNumber(), angle);
+                Serial.printf("Set Closed clicked for servo pin %s, %i\n", servo->getPinString(), angle);
                 servo->setAngleClosed(angle);
 
                 break;
@@ -883,9 +821,9 @@ void MQTTContainer::webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
   }
 }
 
-MQTTServo* MQTTContainer::determineServo(uint8_t pinNumber) {
+MQTTServo* MQTTContainer::determineServo(char* pinString) {
     for (MQTTServo* servo : servoList) {
-        if (servo->getPinNumber() == pinNumber) {
+        if (strcmp(servo->getPinString(), pinString) == 0) {
             return servo;
         }
     }
@@ -893,7 +831,7 @@ MQTTServo* MQTTContainer::determineServo(uint8_t pinNumber) {
     return NULL; // To keep the compiler happy.
 }
 
-void MQTTContainer::buildServosWebPage2() {
+void MQTTContainer::buildServosWebPage() {
     String WebPageHTML = R"rawliteral(
     <!DOCTYPE HTML>
     <html>
@@ -930,11 +868,17 @@ void MQTTContainer::buildServosWebPage2() {
                 console.log('message received: ' + event.data);
                 switch(event.data[0]) {
                     case 's':
-                        document.getElementById('s' + event.data[1]).innerHTML = event.data.slice(2);
+                        try {
+                            document.getElementById(event.data.slice(0,4)).innerHTML = event.data.slice(4);
+                        }
+                        catch (e) {}
                         break;
                     
                     case 'r':
-                        document.getElementById('r' + event.data[1]).value = event.data.slice(2);
+                        try {
+                            document.getElementById(event.data.slice(0,4)).value = event.data.slice(4);
+                        }
+                        catch (e) {}
                         break;
                 }
             }
@@ -973,13 +917,13 @@ void MQTTContainer::buildServosWebPage2() {
     <a href='/'>Home</a>
     <br />
     <br />
-    Servos
+    <a href="sensors">Sensors</a>
     <br />
     <a href="basicRelays">Basic Relays</a>
     <br />
     <a href="advancedRelays">Advanced Relays</a>
     <br />
-    <a href="sensors">Sensors</a>
+    Servos
     <br />
     <br />
 
@@ -1008,7 +952,6 @@ void MQTTContainer::buildServosWebPage2() {
 
 String MQTTContainer::getRepeatingText() {
     String s = "";
-    char PinNumber[10];
 
     String RepeatingHTML = R"rawliteral(
         <tr>
@@ -1031,9 +974,8 @@ String MQTTContainer::getRepeatingText() {
     for (MQTTServo* servo : servoList) {
 
         String c = RepeatingHTML;
-        sprintf(PinNumber, "%i", servo->getPinNumber());
 
-        c.replace("%PIN_NUMBER%", PinNumber);
+        c.replace("%PIN_NUMBER%", servo->getPinString());
         c.replace("%TURNOUT_TOPIC%", servo->getTurnoutTopic());
 
         s += c;

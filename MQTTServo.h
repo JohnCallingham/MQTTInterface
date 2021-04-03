@@ -7,10 +7,6 @@
 
 class MQTTServo {
     public:
-        // MQTTServo(uint8_t pinNumber, const char* turnoutTopic, Adafruit_PWMServoDriver* pwm);
-        // MQTTServo(uint8_t pinNumber, const char* turnoutTopic);
-        // MQTTServo(uint8_t pinNumber, const char* turnoutTopic, Adafruit_PWMServoDriver* pwm)
-        //     : MQTTServo(pinNumber, turnoutTopic) {this->pwm = pwm;}
         MQTTServo(uint8_t pinNumber, const char* turnoutTopic, Adafruit_PWMServoDriver* pwm);
 
         enum receivedMessageEnum {
@@ -20,8 +16,6 @@ class MQTTServo {
             reachedClosed
         };
 
-        void setMQTTBroker(const char* mqttBroker) {this->mqttBroker = mqttBroker;}
-        void setMQTTPort(uint16_t mqttPort) {this->mqttPort = mqttPort;}
         void setAngleClosed(int angleClosed) {this->angleClosed = angleClosed; this->currentServoAngle = angleClosed;} // Need to reset the curernt angle to prevent going to 0 or 180.
         void setAngleThrown(int angleThrown) {this->angleThrown = angleThrown; this->currentServoAngle = angleThrown;} // Need to reset the curernt angle to prevent going to 0 or 180.
         void setTimeFromClosedToThrown_mS(unsigned long timeFromClosedToThrown_mS) {this->timeFromClosedToThrown_mS = timeFromClosedToThrown_mS;}
@@ -30,12 +24,15 @@ class MQTTServo {
         void setClosedSensorTopic(const char* closedSensorTopic) {this->closedSensorTopic = closedSensorTopic;}
 
         uint8_t getPinNumber() {return this->pinNumber;}
+        char* getPinString() {return this->pinString;}
         const char* getTurnoutTopic() {return this->turnoutTopic;}
 
         void loop();
 
         void messageReceived(receivedMessageEnum message);
-        void updateWebPage();
+        void updateWebPageState();
+        void updateWebPageAngle();
+        void updatePin(uint8_t newValue);        
 
     private:
         enum stateEnum {
@@ -49,6 +46,7 @@ class MQTTServo {
         stateEnum currentState = stateUndefined;
 
         uint8_t pinNumber;
+        char pinString[10];
         Adafruit_PWMServoDriver* pwm = NULL; // NULL means use the GPIO pins on the 8266. If non NULL, then points to the object to drive the pins.
         const char* turnoutTopic;
         WiFiClient wifiClient;
@@ -78,7 +76,6 @@ class MQTTServo {
         bool initialised = false;
 
         void configurePin();
-        void updatePin(uint8_t newValue);        
 };
 
 #endif

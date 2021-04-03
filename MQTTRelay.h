@@ -6,16 +6,12 @@
 class MQTTRelay {
     public:
 
-        //MQTTRelay(uint8_t pinNumber, const char* relayTopic);
-        //MQTTRelay(uint8_t pinNumber, const char* relayTopic, PCF8575* pcf8575) 
-            //: MQTTRelay(pinNumber, relayTopic) {this->pcf8575 = pcf8575;}
         MQTTRelay(uint8_t pinNumber, const char* relayTopic, PCF8575* pcf8575);
-        //MQTTRelay(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic);
-        //MQTTRelay(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic, PCF8575* pcf8575)
-            //: MQTTRelay(pinNumber, relayOperateTopic, relayReleaseTopic) {this->pcf8575 = pcf8575;}
         MQTTRelay(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic, PCF8575* pcf8575);
 
         uint8_t getPinNumber() {return this->pinNumber;}
+        char* getPinString() {return this->pinString;}
+        char* getPinID() {return this->pinID;}
         const char* getRelayTopic() {return this->relayTopic;}
         const char* getRelayOperateTopic() {return this->relayOperateTopic;}
         const char* getRelayReleaseTopic() {return this->relayReleaseTopic;}
@@ -29,6 +25,8 @@ class MQTTRelay {
     private:
 
         uint8_t pinNumber;
+        char pinString[10];
+        char pinID[10];
         PCF8575* pcf8575 = NULL; // NULL means use the GPIO pins on the 8266. If non NULL, then points to the object to drive the pins.
         const char* relayTopic;
         const char* relayOperateTopic;

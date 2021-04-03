@@ -15,6 +15,9 @@ A library to interface between JMRI and sensors, servos and relays. Designed to 
 ### MQTTSensor
 * setDebounceDelay_mS
 ### MQTTServo
+* Creating a servo object. This can be done in two ways.
+    - If the servo is connected to a native 8266 port use 'container.addServo(4, "trains/track/turnout/124");'
+    - If the servo is connected to an I2C PWM expander port use 'container.addServo(5, "trains/track/turnout/123", pwm);'
 * setAngleClosed
 * setAngleThrown
 * setTimeFromClosedToThrown_mS

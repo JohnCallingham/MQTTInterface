@@ -49,7 +49,7 @@ class MQTTContainer {
         void connectToMQTT();
         void buildIndexWebPage();
         void buildServosWebPage();
-        void buildServosWebPage2();
+        //void buildServosWebPage2();
         String getRepeatingText();
         void buildBasicRelaysWebPage();
         void buildAdvancedRelaysWebPage();
@@ -64,7 +64,8 @@ class MQTTContainer {
 
         void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length);
         // MQTTServo* determineServo(uint8_t *payload);
-        MQTTServo* determineServo(uint8_t pinNumber);
+        // MQTTServo* determineServo(uint8_t pinNumber);
+        MQTTServo* determineServo(char* pinString);
 
         ESP8266WebServer server;
 

@@ -11,6 +11,14 @@ MQTTSensor::MQTTSensor(uint8_t pinNumber, const char* sensorTopic, PCF8575* pcf8
     this->sensorTopic = sensorTopic;
     this->pcf8575 = pcf8575;
 
+    if (this->pcf8575 == NULL) {
+        sprintf(this->pinString, "N%02i", this->pinNumber);
+        sprintf(this->pinID, "N%02i", this->pinNumber);
+    } else {
+        sprintf(this->pinString, "X%02i", this->pinNumber);
+        sprintf(this->pinID, "X%02i", this->pinNumber + 16);
+    }
+
     configurePin();
 }
 
@@ -70,9 +78,11 @@ void MQTTSensor::updateWebPage() {
     char str[10];
 
     if (this->currentState == HIGH) {
-        sprintf(str,"%i%s",this->pinNumber, "Inactive");
+        // sprintf(str,"s%s%s",this->pinString, "Inactive");
+        sprintf(str,"s%s%s",this->pinID, "Inactive");
     } else {
-        sprintf(str,"%i%s",this->pinNumber, "Active");
+        // sprintf(str,"s%s%s",this->pinString, "Active");
+        sprintf(str,"s%s%s",this->pinID, "Active");
     }
 
     webSocket.broadcastTXT(str);
