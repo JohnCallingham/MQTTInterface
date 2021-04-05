@@ -22,10 +22,13 @@ class MQTTServo {
         void setTimeFromThrownToClosed_mS(unsigned long timeFromThrownToClosed_mS) {this->timeFromThrownToClosed_mS = timeFromThrownToClosed_mS;}
         void setThrownSensorTopic(const char* thrownSensorTopic) {this->thrownSensorTopic = thrownSensorTopic;}
         void setClosedSensorTopic(const char* closedSensorTopic) {this->closedSensorTopic = closedSensorTopic;}
+        void setCurrentAngle(int angle) {this->currentServoAngle = angle;}
 
         uint8_t getPinNumber() {return this->pinNumber;}
         char* getPinString() {return this->pinString;}
         const char* getTurnoutTopic() {return this->turnoutTopic;}
+
+        bool initialised = false;
 
         void loop();
 
@@ -49,12 +52,12 @@ class MQTTServo {
         char pinString[10];
         Adafruit_PWMServoDriver* pwm = NULL; // NULL means use the GPIO pins on the 8266. If non NULL, then points to the object to drive the pins.
         const char* turnoutTopic;
-        WiFiClient wifiClient;
+        //WiFiClient wifiClient;
 
-        const char* mqttBroker = "raspberrypi";
-        uint16_t mqttPort = 1883;
-        int angleThrown = 90;
-        int angleClosed = 90;
+        // const char* mqttBroker = "raspberrypi";
+        // uint16_t mqttPort = 1883;
+        int angleThrown = 100;
+        int angleClosed = 80;
         unsigned long timeFromThrownToClosed_mS = 1000;
         unsigned long timeFromClosedToThrown_mS = 1000;
         const char* thrownSensorTopic = "";
@@ -72,8 +75,6 @@ class MQTTServo {
         void adjustMovingTowardsClosed();
         void adjustMovingTowardsThrown();
         void publishMQTTSensor(const char* topic, const char* payload);
-
-        bool initialised = false;
 
         void configurePin();
 };

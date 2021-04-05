@@ -2,9 +2,11 @@
 #include <MQTTServo.h>
 #include <ESP8266WiFi.h>
 #include <WebSocketsServer.h>
+#include <MQTT_EEPROM.h>
 
 extern WebSocketsServer webSocket;
 extern PubSubClient mqttClient;
+extern MQTT_EEPROM mqttEEPROM;
 
 MQTTServo::MQTTServo(uint8_t pinNumber, const char* turnoutTopic, Adafruit_PWMServoDriver* pwm) {
     // Store the parameters.
@@ -25,6 +27,13 @@ MQTTServo::MQTTServo(uint8_t pinNumber, const char* turnoutTopic, Adafruit_PWMSe
 void MQTTServo::loop() {
     if (!initialised) {
         calculatePeriods();
+
+        // Load values from EEPROM.
+        if (mqttEEPROM.initialised()) {
+            Serial.println("Getting angles for servo.");
+            this->setAngleClosed(mqttEEPROM.getServoAngleClosed(pinNumber));
+            this->setAngleThrown(mqttEEPROM.getServoAngleThrown(pinNumber));
+        }
 
         initialised = true;
     }
@@ -218,7 +227,7 @@ void MQTTServo::adjustMovingTowardsClosed() {
             return;
         } else {
             // Not yet, so move the servo.
-            Serial.printf ("Servo on pin %s, Turnout %s, Servo angle %i\n", this->pinString, turnoutTopic, currentServoAngle);
+            //Serial.printf ("Servo on pin %s, Turnout %s, Servo angle %i\n", this->pinString, turnoutTopic, currentServoAngle);
             updatePin(currentServoAngle);
         }
     }
@@ -252,7 +261,7 @@ void MQTTServo::adjustMovingTowardsThrown() {
             return;
         } else {
             // Not yet, so move the servo.
-            Serial.printf ("Servo on pin %s, Turnout %s, Servo angle %i\n", this->pinString, turnoutTopic, currentServoAngle);
+            //Serial.printf ("Servo on pin %s, Turnout %s, Servo angle %i\n", this->pinString, turnoutTopic, currentServoAngle);
             updatePin(currentServoAngle);
         }
     }
@@ -293,7 +302,7 @@ void MQTTServo::configurePin() {
 void MQTTServo::updatePin(uint8_t newValue) {
     if (this->pwm == NULL) {
         // Using the native pins on the 8266.
-        
+        // This has not been impelmented.
     } else {
         // Using the I/O expander.
 

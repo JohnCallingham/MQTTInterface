@@ -2,10 +2,12 @@
 #include <MQTTServo.h>
 #include <list>
 #include <WebSocketsServer.h>
+#include <MQTT_EEPROM.h>
 
 extern WebSocketsServer webSocket;
 extern WiFiClient wifiClient;
 extern PubSubClient mqttClient;
+MQTT_EEPROM mqttEEPROM;
 
 MQTTContainer::MQTTContainer() {
     // Start the web server.
@@ -89,6 +91,11 @@ void MQTTContainer::loop() {
         // Set the callback function for websocket events from the client.
         webSocket.onEvent(std::bind(&MQTTContainer::webSocketEvent, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 
+        // If EEPROM has not been initialised, then initialise it.
+        if (! mqttEEPROM.initialised()) mqttEEPROM.initialise();
+
+        //mqttEEPROM.clear(); // for testing
+
         this->initialised = true;
     }
 
@@ -127,9 +134,10 @@ void MQTTContainer::handleNewWebSocketClient() {
    if (webSocket.connectedClients(false) != this->connectedClients) { // Setting ping to true caused continuous repeated pings.
        this->connectedClients = webSocket.connectedClients(true);
 
-       // Update the web page with the current state of all servos.
+       // Update the web page with the current state and angle of all servos.
        for (MQTTServo* servo : this->servoList) {
            servo->updateWebPageState();
+           servo->updateWebPageAngle();
        }
 
        // Update the web page with the current state of all basic relays.
@@ -282,22 +290,41 @@ void MQTTContainer::buildIndexWebPage() {
         border-bottom: 1px solid #ddd;
         }
     </style> 
+
+    <script>
+        var Socket;
+        function init() {
+            Socket = new WebSocket('ws://' + window.location.hostname + ':81/');
+            Socket.onmessage = function(event) {
+                console.log('message received: ' + event.data);
+                switch(event.data[0]) {
+                    case 'p':
+                        alert('EEPROM cleared');
+                        break;
+                }
+            }
+            Socket.onopen = function(event) {console.log('Connection opened');}
+            Socket.onerror = function(event) {console.log('Error');}
+        }
+        function clearEEPROM() {
+            console.log('clearEEPROM clicked.');
+            Socket.send('p');
+            console.log('message sent: p');
+        }
+    </script>
+
     </head>
 
-    <body>
+    <body onload='javascript:init()'>
 
     <br />
-    Home
-    <br />
-    <br />
-    <a href="sensors">Sensors</a>
-    <br />
-    <a href="basicRelays">Basic Relays</a>
-    <br />
-    <a href="advancedRelays">Advanced Relays</a>
-    <br />
+    <nav>
+    Home |
+    <a href="sensors">Sensors</a> |
+    <a href="basicRelays">Basic Relays</a> |
+    <a href="advancedRelays">Advanced Relays</a> |
     <a href="servos">Servos</a>
-    <br />
+    </nav>
     <br />
 
     <table>
@@ -306,18 +333,18 @@ void MQTTContainer::buildIndexWebPage() {
     <td>Name</td>
     <td>ID</td>
     <td>IP</td>
+    <td>EEPROM</td>
     </tr>
 
     <tr>
+
+    <td>MQTT Interface</td>
+    <td>%ID%</td>
+    <td>%IP%</td>
     <td>
-    MQTT Interface
+        <input type='button' value='Clear' onclick="clearEEPROM()" />
     </td>
-    <td>
-    %ID%
-    </td>
-    <td>
-    %IP%
-    </td>
+
     </tr>
 
     </table>
@@ -326,10 +353,6 @@ void MQTTContainer::buildIndexWebPage() {
 
     )rawliteral";
 
-    // WebPageHTML.replace("%ID%", ESP.getChipId());
-    // WebPageHTML.replace("%IP%", WiFi.localIP());
-
-    //indexWebPage += WebPageHTML;
     indexWebPage = replaceAll(WebPageHTML);
 }
 
@@ -381,17 +404,13 @@ void MQTTContainer::buildBasicRelaysWebPage() {
     <body onload='javascript:init()'>
 
     <br />
-    <a href='/'>Home</a>
-    <br />
-    <br />
-    <a href="sensors">Sensors</a>
-    <br />
-    Basic Relays
-    <br />
-    <a href="advancedRelays">Advanced Relays</a>
-    <br />
+    <nav>
+    <a href="/">Home</a> |
+    <a href="sensors">Sensors</a> |
+    Basic Relays |
+    <a href="advancedRelays">Advanced Relays</a> |
     <a href="servos">Servos</a>
-    <br />
+    </nav>
     <br />
 
     )rawliteral";
@@ -477,17 +496,13 @@ void MQTTContainer::buildAdvancedRelaysWebPage() {
     <body onload='javascript:init()'>
 
     <br />
-    <a href='/'>Home</a>
-    <br />
-    <br />
-    <a href="sensors">Sensors</a>
-    <br />
-    <a href="basicRelays">Basic Relays</a>
-    <br />
-    Advanced Relays
-    <br />
+    <nav>
+    <a href="/">Home</a> |
+    <a href="sensors">Sensors</a> |
+    <a href="basicRelays">Basic Relays</a> |
+    Advanced Relays |
     <a href="servos">Servos</a>
-    <br />
+    </nav>
     <br />
 
     )rawliteral";
@@ -585,19 +600,14 @@ void MQTTContainer::buildSensorsWebPage() {
     <body onload='javascript:init()'>
 
     <br />
-    <a href='/'>Home</a>
-    <br />
-    <br />
-    Sensors
-    <br />
-    <a href="basicRelays">Basic Relays</a>
-    <br />
-    <a href="advancedRelays">Advanced Relays</a>
-    <br />
+    <nav>
+    <a href="/">Home</a> |
+    Sensors |
+    <a href="basicRelays">Basic Relays</a> |
+    <a href="advancedRelays">Advanced Relays</a> |
     <a href="servos">Servos</a>
+    </nav>
     <br />
-    <br />
-       
 
     )rawliteral";
 
@@ -757,8 +767,6 @@ void MQTTContainer::webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
     if (type == WStype_TEXT) {
 
         // Determine the servo object.
-        // uint8_t pinNumber = (uint8_t)payload[1] - 48; // TO DO need a better way to convert from ascii char to int. Also need to cope with 2 chars.
-        // MQTTServo* servo = determineServo(pinNumber);
         for (int i=1; i<4; i++) {
             pinString[i - 1] = (char)payload[i];
         }
@@ -774,8 +782,11 @@ void MQTTContainer::webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
                 // The angle slider has been moved.
                 Serial.printf("Angle changed for servo pin %s, %i\n", servo->getPinString(), angle);
 
-                //TO DO - need to move the servo when the user moves the slider.
+                // Move the servo when the user moves the slider.
                 servo->updatePin(angle);
+
+                // Set the current angle to match the slider position. !!wwHAT HAPPENS IF WE ARE PAST THE CLOSED OR THROWN POSITIONS ??? This doesn't seem to be a problem.
+                servo->setCurrentAngle(angle);
 
                 break;
             case 'e':
@@ -794,12 +805,28 @@ void MQTTContainer::webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
                 // Set Thrown has been clicked.
                 Serial.printf("Set Thrown clicked for servo pin %s, %i\n", servo->getPinString(), angle);
                 servo->setAngleThrown(angle);
+                mqttEEPROM.setServoAngleThrown(servo->getPinNumber(), angle);
 
                 break;
             case 'c':
                 // Set Closed has been clicked.
                 Serial.printf("Set Closed clicked for servo pin %s, %i\n", servo->getPinString(), angle);
                 servo->setAngleClosed(angle);
+                mqttEEPROM.setServoAngleClosed(servo->getPinNumber(), angle);
+
+                break;
+            case 'p':
+                // Clear EEPROM has been clicked.
+                Serial.println("Clear EEPROM clicked.");
+                mqttEEPROM.initialise();
+
+                // Re-initialise all servos.
+                for (MQTTServo* servo : servoList) {
+                    servo->initialised = false;
+                }
+
+                // Confirm to the web page.
+                webSocket.broadcastTXT("p");
 
                 break;
             default:
@@ -877,6 +904,8 @@ void MQTTContainer::buildServosWebPage() {
                     case 'r':
                         try {
                             document.getElementById(event.data.slice(0,4)).value = event.data.slice(4);
+                            <!-- update the angle figures here -->
+                            document.getElementById('t' + event.data.slice(0,4)).innerHTML = event.data.slice(4);
                         }
                         catch (e) {}
                         break;
@@ -887,6 +916,7 @@ void MQTTContainer::buildServosWebPage() {
         }
         function sendAngle(id) {
             Socket.send(id + document.getElementById(id).value);
+            document.getElementById('t' + id).innerHTML = document.getElementById(id).value;
             console.log('message sent: ' + id + document.getElementById(id).value);
         }
         function testClose(id) {
@@ -914,17 +944,13 @@ void MQTTContainer::buildServosWebPage() {
     <body onload='javascript:init()'>
 
     <br />
-    <a href='/'>Home</a>
-    <br />
-    <br />
-    <a href="sensors">Sensors</a>
-    <br />
-    <a href="basicRelays">Basic Relays</a>
-    <br />
-    <a href="advancedRelays">Advanced Relays</a>
-    <br />
+    <nav>
+    <a href="/">Home</a> |
+    <a href="sensors">Sensors</a> |
+    <a href="basicRelays">Basic Relays</a> |
+    <a href="advancedRelays">Advanced Relays</a> |
     Servos
-    <br />
+    </nav>
     <br />
 
     <table>
@@ -934,8 +960,8 @@ void MQTTContainer::buildServosWebPage() {
     <td>Servo Topic</td>
     <td>Servo Test</td>
     <td width='200'>Servo State</td>
-    <td>Servo Angle</td>
-    <td>Set Angle</td>
+    <td colspan=2>Servo Angle</td>
+    <td>Set Servo Angle</td>
     </tr>
 
     %REPEATING_TEXT%
@@ -962,7 +988,13 @@ String MQTTContainer::getRepeatingText() {
         <input type='button' id='f%PIN_NUMBER%' value='Throw' onclick="testThrow(this.id)" />
         </td>
         <td><div id='s%PIN_NUMBER%'></div></td>
-        <td><div><input type='range' min='0' max='180' id='r%PIN_NUMBER%' oninput='sendAngle(this.id)' /></td>
+        <td width='25'>
+            <div align='right' id='tr%PIN_NUMBER%'></div>
+        </td>
+        <td>
+            <div><input type='range' min='0' max='180' id='r%PIN_NUMBER%' oninput='sendAngle(this.id)' /></div>
+        </td>
+        
         <td>
         <input type='button' id='c%PIN_NUMBER%' value='Closed' onclick="setClosed('%PIN_NUMBER%')" />
         <input type='button' id='t%PIN_NUMBER%' value='Thrown' onclick="setThrown('%PIN_NUMBER%')" />

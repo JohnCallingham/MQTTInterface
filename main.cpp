@@ -24,8 +24,8 @@ Adafruit_PWMServoDriver* pwm = new Adafruit_PWMServoDriver(0x40);
 // Create an MQTTContainer object which will contain pointers to all the MQTTServo, MQTTRelay and MQTTSensor objects.
 MQTTContainer container;
 
-// Create a pointer to an MQTTSensor object which is connected to GPIO5 of the 8266.
-//MQTTSensor* sensor1 = container.addSensor(5, "trains/track/sensor/GPIO5");
+// Create a pointer to an MQTTSensor object which is connected to GPIO14 of the 8266.
+MQTTSensor* sensor1 = container.addSensor(14, "trains/track/sensor/GPIO14");
 
 // Create a pointer to an MQTTSensor object which is connected to port 5 of the I2C I/O expander.
 MQTTSensor* sensor2 = container.addSensor(5, "trains/track/sensor/Port5", pcf8575);
@@ -70,8 +70,8 @@ void setup() {
   servo1->setAngleClosed(80);
   servo1->setAngleThrown(100);
 
-  // servo2->setAngleClosed(80);
-  // servo2->setAngleThrown(100);
+  servo2->setAngleClosed(80);
+  servo2->setAngleThrown(100);
 
   // servo2->setTimeFromClosedToThrown_mS(1000);
   // servo2->setTimeFromThrownToClosed_mS(1000);
