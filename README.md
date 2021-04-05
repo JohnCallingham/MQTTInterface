@@ -1,5 +1,5 @@
 # MQTTInterface
-A library to interface between JMRI and sensors, servos and relays. Designed to run on a Wemos D1 Mini.
+A program to interface between JMRI and sensors, servos and relays. Designed to run on a Wemos D1 Mini.
 ## Functions
 * Provides three types of software objects - servos, sensors, and relays - which equate to the JMRI tables - Turnouts, Sensors and Lights.
 * A web server is included which displays a multipage interface for configuration and testing.
