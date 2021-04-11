@@ -2,8 +2,8 @@
 #define MQTT_CONTAINER_H
 
 #include <MQTTServo.h>
-#include <MQTTRelay.h>
-#include <MQTTSensor.h>
+#include <MQTTOutput.h>
+#include <MQTTInput.h>
 #include <ESP8266WebServer.h>
 #include <list>
 
@@ -15,13 +15,13 @@ class MQTTContainer {
         MQTTServo* addServo(uint8_t pinNumber, const char* servoTopic);
         MQTTServo* addServo(uint8_t pinNumber, const char* servoTopic, Adafruit_PWMServoDriver* pwm);
 
-        MQTTRelay* addRelay(uint8_t pinNumber, const char* relayTopic);
-        MQTTRelay* addRelay(uint8_t pinNumber, const char* relayTopic, PCF8575* pcf8575);
-        MQTTRelay* addRelay(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic);
-        MQTTRelay* addRelay(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic, PCF8575* pcf8575);
+        MQTTOutput* addOutput(uint8_t pinNumber, const char* relayTopic);
+        MQTTOutput* addOutput(uint8_t pinNumber, const char* relayTopic, PCF8575* pcf8575);
+        MQTTOutput* addOutput(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic);
+        MQTTOutput* addOutput(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic, PCF8575* pcf8575);
 
-        MQTTSensor* addSensor(uint8_t pinNumber, const char* sensorTopic);
-        MQTTSensor* addSensor(uint8_t pinNumber, const char* sensorTopic, PCF8575* pcf8575);
+        MQTTInput* addInput(uint8_t pinNumber, const char* sensorTopic);
+        MQTTInput* addInput(uint8_t pinNumber, const char* sensorTopic, PCF8575* pcf8575);
 
         void loop();
 
@@ -31,9 +31,9 @@ class MQTTContainer {
 
     private:
         std::list<MQTTServo*> servoList;
-        std::list<MQTTRelay*> relayBasicList;
-        std::list<MQTTRelay*> relayAdvancedList;
-        std::list<MQTTSensor*> sensorList;
+        std::list<MQTTOutput*> outputList;
+        // std::list<MQTTOutput*> relayAdvancedList;
+        std::list<MQTTInput*> inputList;
 
         const char* mqttBroker = "raspberrypi";
         uint16_t mqttPort = 1883;
@@ -41,9 +41,9 @@ class MQTTContainer {
 
         String indexWebPage = "";
         String servosWebPage = "";
-        String basicRelaysWebPage = "";
-        String advancedRelaysWebPage = "";
-        String sensorsWebPage = "";
+        String outputsWebPage = "";
+        // String advancedRelaysWebPage = "";
+        String inputsWebPage = "";
 
         void handleNewWebSocketClient();
         void connectToMQTT();
@@ -51,9 +51,9 @@ class MQTTContainer {
         void buildServosWebPage();
         //void buildServosWebPage2();
         String getRepeatingText();
-        void buildBasicRelaysWebPage();
-        void buildAdvancedRelaysWebPage();
-        void buildSensorsWebPage();
+        void buildOutputsWebPage();
+        // void buildAdvancedRelaysWebPage();
+        void buildInputsWebPage();
         void publishStartupMessage();
         void callback(char* topic, byte* payload, unsigned int length);
         String replaceAll(String s);

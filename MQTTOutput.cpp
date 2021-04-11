@@ -2,12 +2,12 @@
 Basic - subscribes to a single topic - ACTIVE operates the relay, INACTIVE releases the relay.
 Advanced - subscribes to two topics - one topic ACTIVE operates the realy, the other topic ACTIVE releases the relay.
 */
-#include <MQTTRelay.h>
+#include <MQTTOutput.h>
 #include <WebSocketsServer.h>
 
 extern WebSocketsServer webSocket;
 
-MQTTRelay::MQTTRelay(uint8_t pinNumber, const char* relayTopic, PCF8575* pcf8575) {
+MQTTOutput::MQTTOutput(uint8_t pinNumber, const char* relayTopic, PCF8575* pcf8575) {
     // Store the parameters.
     this->pinNumber = pinNumber;
     this->relayTopic = relayTopic;
@@ -27,28 +27,28 @@ MQTTRelay::MQTTRelay(uint8_t pinNumber, const char* relayTopic, PCF8575* pcf8575
     strcpy(this->currentState, "Released");
 }
 
-MQTTRelay::MQTTRelay(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic, PCF8575* pcf8575) {
-    // Store the parameters.
-    this->pinNumber = pinNumber;
-    this->relayOperateTopic = relayOperateTopic;
-    this->relayReleaseTopic = relayReleaseTopic;
-    this->pcf8575 = pcf8575;
+// MQTTOutput::MQTTOutput(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic, PCF8575* pcf8575) {
+//     // Store the parameters.
+//     this->pinNumber = pinNumber;
+//     this->relayOperateTopic = relayOperateTopic;
+//     this->relayReleaseTopic = relayReleaseTopic;
+//     this->pcf8575 = pcf8575;
 
-    if (this->pcf8575 == NULL) {
-        sprintf(this->pinString, "N%02i", this->pinNumber);
-        sprintf(this->pinID, "N%02i", this->pinNumber);
-    } else {
-        sprintf(this->pinString, "X%02i", this->pinNumber);
-        sprintf(this->pinID, "X%02i", this->pinNumber + 16);
-    }
+//     if (this->pcf8575 == NULL) {
+//         sprintf(this->pinString, "N%02i", this->pinNumber);
+//         sprintf(this->pinID, "N%02i", this->pinNumber);
+//     } else {
+//         sprintf(this->pinString, "X%02i", this->pinNumber);
+//         sprintf(this->pinID, "X%02i", this->pinNumber + 16);
+//     }
 
-    configurePin();
+//     configurePin();
 
-    // Initialise to released.
-    strcpy(this->currentState, "Released");
-}
+//     // Initialise to released.
+//     strcpy(this->currentState, "Released");
+// }
 
-void MQTTRelay::receivedRelayTopic(char* payload) {
+void MQTTOutput::receivedRelayTopic(char* payload) {
     // JMRI sensors send "ACTIVE" or "INACTIVE". JMRI lights send "ON" or "OFF".
     // If payload == "ACTIVE" or "ON", operate relay.
     // If payload == "INACTIVE" or "OFF", release relay.
@@ -68,29 +68,29 @@ void MQTTRelay::receivedRelayTopic(char* payload) {
     }
 }
 
-void MQTTRelay::receivedRelayOperateTopic(char* payload) {
-    // If payload == "ACTIVE", operate relay.
-    // If payload == "INACTIVE", do nothing.
-    if (strcmp(payload, "ACTIVE") == 0) {
-        Serial.printf("Advanced relay on pin %i operated\n", this->pinNumber);
-        updatePin(LOW);
-        strcpy (this->currentState, "Operated");
-        updateWebPage();
-    }
-}
+// void MQTTOutput::receivedRelayOperateTopic(char* payload) {
+//     // If payload == "ACTIVE", operate relay.
+//     // If payload == "INACTIVE", do nothing.
+//     if (strcmp(payload, "ACTIVE") == 0) {
+//         Serial.printf("Advanced relay on pin %i operated\n", this->pinNumber);
+//         updatePin(LOW);
+//         strcpy (this->currentState, "Operated");
+//         updateWebPage();
+//     }
+// }
 
-void MQTTRelay::receivedRelayReleaseTopic(char* payload) {
-    // If payload == "ACTIVE", release relay.
-    // If payload == "INACTIVE", do nothing.
-    if(strcmp(payload, "ACTIVE") == 0) {
-        Serial.printf("Advanced relay on pin %i released\n", this->pinNumber);
-        updatePin(HIGH);
-        strcpy (this->currentState, "Released");
-        updateWebPage();
-    }
-}
+// void MQTTOutput::receivedRelayReleaseTopic(char* payload) {
+//     // If payload == "ACTIVE", release relay.
+//     // If payload == "INACTIVE", do nothing.
+//     if(strcmp(payload, "ACTIVE") == 0) {
+//         Serial.printf("Advanced relay on pin %i released\n", this->pinNumber);
+//         updatePin(HIGH);
+//         strcpy (this->currentState, "Released");
+//         updateWebPage();
+//     }
+// }
 
-void MQTTRelay::updateWebPage() {
+void MQTTOutput::updateWebPage() {
     // Update the web socket.
     char str[60];
 
@@ -101,7 +101,7 @@ void MQTTRelay::updateWebPage() {
     webSocket.broadcastTXT(str);
 }
 
-void MQTTRelay::configurePin() {
+void MQTTOutput::configurePin() {
     if (pcf8575 == NULL) {
         // Using the native pins on the 8266.
         pinMode(this->pinNumber, OUTPUT);
@@ -111,7 +111,7 @@ void MQTTRelay::configurePin() {
     }
 }
 
-void MQTTRelay::updatePin(uint8_t newValue) {
+void MQTTOutput::updatePin(uint8_t newValue) {
     if (pcf8575 == NULL) {
         // Using the native pins on the 8266.
         digitalWrite(this->pinNumber, newValue);

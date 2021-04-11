@@ -1,14 +1,14 @@
-#ifndef MQTT_SENSOR_H
-#define MQTT_SENSOR_H
+#ifndef MQTT_INPUT_H
+#define MQTT_INPUT_H
 
 #include <PubSubClient.h>
 #include <WebSocketsServer.h>
 #include <PCF8575.h>
 
-class MQTTSensor {
+class MQTTInput {
 
     public:
-        MQTTSensor(uint8_t pinNumber, const char* sensorTopic, PCF8575* pcf8575);
+        MQTTInput(uint8_t pinNumber, const char* sensorTopic, PCF8575* pcf8575);
 
         void loop();
 

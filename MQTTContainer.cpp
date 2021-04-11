@@ -13,9 +13,9 @@ MQTTContainer::MQTTContainer() {
     // Start the web server.
     this->server.on ("/", [&]() {this->server.send(200, "text/html", this->indexWebPage);});
     this->server.on ("/servos", [&]() {this->server.send(200, "text/html", this->servosWebPage);});
-    this->server.on ("/basicRelays", [&]() {this->server.send(200, "text/html", this->basicRelaysWebPage);});
-    this->server.on ("/advancedRelays", [&]() {this->server.send(200, "text/html", this->advancedRelaysWebPage);});
-    this->server.on ("/sensors", [&]() {this->server.send(200, "text/html", this->sensorsWebPage);});
+    this->server.on ("/outputs", [&]() {this->server.send(200, "text/html", this->outputsWebPage);});
+    // this->server.on ("/advancedRelays", [&]() {this->server.send(200, "text/html", this->advancedRelaysWebPage);});
+    this->server.on ("/inputs", [&]() {this->server.send(200, "text/html", this->inputsWebPage);});
     this->server.begin();
 }
 
@@ -33,46 +33,46 @@ MQTTServo* MQTTContainer::addServo(uint8_t pinNumber, const char* servoTopic, Ad
     return newServo;
 }
 
-MQTTRelay* MQTTContainer::addRelay(uint8_t pinNumber, const char* relayTopic) {
-    return this->addRelay(pinNumber, relayTopic, (PCF8575*)NULL);
+MQTTOutput* MQTTContainer::addOutput(uint8_t pinNumber, const char* relayTopic) {
+    return this->addOutput(pinNumber, relayTopic, (PCF8575*)NULL);
 }
 
-MQTTRelay* MQTTContainer::addRelay(uint8_t pinNumber, const char* relayTopic, PCF8575* pcf8575) {
-    MQTTRelay* newRelay = new MQTTRelay(pinNumber, relayTopic, pcf8575);
+MQTTOutput* MQTTContainer::addOutput(uint8_t pinNumber, const char* relayTopic, PCF8575* pcf8575) {
+    MQTTOutput* newOutput = new MQTTOutput(pinNumber, relayTopic, pcf8575);
 
     // Add the new relay to the end of the basic relay list.
-    relayBasicList.push_back(newRelay);
+    outputList.push_back(newOutput);
 
     // Return the pointer to the new basic relay.
-    return newRelay;
+    return newOutput;
 }
 
-MQTTRelay* MQTTContainer::addRelay(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic) {
-    return this->addRelay(pinNumber, relayOperateTopic, relayReleaseTopic, (PCF8575*)NULL);
+// MQTTOutput* MQTTContainer::addOutput(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic) {
+//     return this->addOutput(pinNumber, relayOperateTopic, relayReleaseTopic, (PCF8575*)NULL);
+// }
+
+// MQTTOutput* MQTTContainer::addOutput(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic, PCF8575* pcf8575) {
+//     MQTTOutput* newRelay = new MQTTOutput(pinNumber, relayOperateTopic, relayReleaseTopic, pcf8575);
+
+//     // Add the new relay to the end of the advanced relay list.
+//     relayAdvancedList.push_back(newRelay);
+
+//     // Return the pointer to the new advanced relay.
+//     return newRelay;
+// }
+
+MQTTInput* MQTTContainer::addInput(uint8_t pinNumber, const char* sensorTopic) {
+    return this->addInput(pinNumber, sensorTopic, (PCF8575*)NULL);
 }
 
-MQTTRelay* MQTTContainer::addRelay(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic, PCF8575* pcf8575) {
-    MQTTRelay* newRelay = new MQTTRelay(pinNumber, relayOperateTopic, relayReleaseTopic, pcf8575);
-
-    // Add the new relay to the end of the advanced relay list.
-    relayAdvancedList.push_back(newRelay);
-
-    // Return the pointer to the new advanced relay.
-    return newRelay;
-}
-
-MQTTSensor* MQTTContainer::addSensor(uint8_t pinNumber, const char* sensorTopic) {
-    return this->addSensor(pinNumber, sensorTopic, (PCF8575*)NULL);
-}
-
-MQTTSensor* MQTTContainer::addSensor(uint8_t pinNumber, const char* sensorTopic, PCF8575* pcf8575) {
-    MQTTSensor* newSensor = new MQTTSensor(pinNumber, sensorTopic, pcf8575);
+MQTTInput* MQTTContainer::addInput(uint8_t pinNumber, const char* sensorTopic, PCF8575* pcf8575) {
+    MQTTInput* newInput = new MQTTInput(pinNumber, sensorTopic, pcf8575);
 
     // Add the new sensor to the end of the sensor list.
-    sensorList.push_back(newSensor);
+    inputList.push_back(newInput);
 
     // Return the pointer to the new sensor.
-    return newSensor;
+    return newInput;
 }
 
 void MQTTContainer::loop() {
@@ -84,17 +84,15 @@ void MQTTContainer::loop() {
 
         this->buildIndexWebPage();
         this->buildServosWebPage();
-        this->buildBasicRelaysWebPage();
-        this->buildAdvancedRelaysWebPage();
-        this->buildSensorsWebPage();
+        this->buildOutputsWebPage();
+        // this->buildAdvancedRelaysWebPage();
+        this->buildInputsWebPage();
 
         // Set the callback function for websocket events from the client.
         webSocket.onEvent(std::bind(&MQTTContainer::webSocketEvent, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 
         // If EEPROM has not been initialised, then initialise it.
         if (! mqttEEPROM.initialised()) mqttEEPROM.initialise();
-
-        //mqttEEPROM.clear(); // for testing
 
         this->initialised = true;
     }
@@ -108,16 +106,16 @@ void MQTTContainer::loop() {
 		servo->loop();
 	}
 
-    // for (MQTTRelay* relay : relayBasicList) {
+    // for (MQTTOutput* relay : relayBasicList) {
     //     relay->loop(); // REQUIRED???
     // }
 
-    // for (MQTTRelay* relay : relayAdvancedList) {
+    // for (MQTTOutput* relay : relayAdvancedList) {
     //     relay->loop(); // REQUIRED???
     // }
 
-    for (MQTTSensor* sensor : sensorList) {
-        sensor->loop();
+    for (MQTTInput* input : inputList) {
+        input->loop();
     }
 
     server.handleClient();
@@ -141,18 +139,18 @@ void MQTTContainer::handleNewWebSocketClient() {
        }
 
        // Update the web page with the current state of all basic relays.
-       for (MQTTRelay* relay : this->relayBasicList) {
-           relay->updateWebPage();
+       for (MQTTOutput* output : this->outputList) {
+           output->updateWebPage();
        }
 
-       // Update the web page with the current state of all advanced relays.
-       for (MQTTRelay* relay : this->relayAdvancedList) {
-           relay->updateWebPage();
-       }
+    //    // Update the web page with the current state of all advanced relays.
+    //    for (MQTTOutput* relay : this->relayAdvancedList) {
+    //        relay->updateWebPage();
+    //    }
 
        // Update the web page with the current state of all sensors.
-       for (MQTTSensor* sensor : this->sensorList) {
-           sensor->updateWebPage();
+       for (MQTTInput* input : this->inputList) {
+           input->updateWebPage();
        }
    }
 }
@@ -185,20 +183,20 @@ void MQTTContainer::connectToMQTT() {
             }
 
             // All basic relays to subscribe to their relay topic.
-            for (MQTTRelay* relay : relayBasicList) {
-                mqttClient.subscribe(relay->getRelayTopic());
+            for (MQTTOutput* output : outputList) {
+                mqttClient.subscribe(output->getRelayTopic());
 
-                Serial.printf("Basic relay subscribed to topic: %s\n", relay->getRelayTopic());
+                Serial.printf("Basic relay subscribed to topic: %s\n", output->getRelayTopic());
             }
 
-            // All advanced relays to subscribe to their relay operate topic and relay relaese topic.
-            for (MQTTRelay* relay : relayAdvancedList) {
-                mqttClient.subscribe(relay->getRelayOperateTopic());
-                mqttClient.subscribe(relay->getRelayReleaseTopic());
+            // // All advanced relays to subscribe to their relay operate topic and relay release topic.
+            // for (MQTTOutput* relay : relayAdvancedList) {
+            //     mqttClient.subscribe(relay->getRelayOperateTopic());
+            //     mqttClient.subscribe(relay->getRelayReleaseTopic());
 
-                Serial.printf("Advanced relay subscribed to operate topic: %s\n", relay->getRelayOperateTopic());
-                Serial.printf("Advanced relay subscribed to release topic: %s\n", relay->getRelayReleaseTopic());
-            }
+            //     Serial.printf("Advanced relay subscribed to operate topic: %s\n", relay->getRelayOperateTopic());
+            //     Serial.printf("Advanced relay subscribed to release topic: %s\n", relay->getRelayReleaseTopic());
+            // }
 
             // Set the callback which will be used for all servos and relays.
             mqttClient.setCallback(std::bind(&MQTTContainer::callback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
@@ -242,23 +240,23 @@ void MQTTContainer::callback(char* topic, byte* payload, unsigned int length) {
     }
 
     // Using the topic of the received messaage, determine which relay this message is for.
-    for (MQTTRelay* relay : relayBasicList) {
-        if (strcmp(topic, relay->getRelayTopic()) == 0) {
-            relay->receivedRelayTopic(charPayload);
+    for (MQTTOutput* output : outputList) {
+        if (strcmp(topic, output->getRelayTopic()) == 0) {
+            output->receivedRelayTopic(charPayload);
         }
     }
 
-    for (MQTTRelay* relay : relayAdvancedList) {
-        if (strcmp(topic, relay->getRelayOperateTopic()) == 0) {
-            relay->receivedRelayOperateTopic(charPayload);
-        }
-    }
+    // for (MQTTOutput* relay : relayAdvancedList) {
+    //     if (strcmp(topic, relay->getRelayOperateTopic()) == 0) {
+    //         relay->receivedRelayOperateTopic(charPayload);
+    //     }
+    // }
 
-    for (MQTTRelay* relay : relayAdvancedList) {
-        if (strcmp(topic, relay->getRelayReleaseTopic()) == 0) {
-            relay->receivedRelayReleaseTopic(charPayload);
-        }
-    }
+    // for (MQTTOutput* relay : relayAdvancedList) {
+    //     if (strcmp(topic, relay->getRelayReleaseTopic()) == 0) {
+    //         relay->receivedRelayReleaseTopic(charPayload);
+    //     }
+    // }
 }
 
 void MQTTContainer::buildIndexWebPage() {
@@ -320,9 +318,8 @@ void MQTTContainer::buildIndexWebPage() {
     <br />
     <nav>
     Home |
-    <a href="sensors">Sensors</a> |
-    <a href="basicRelays">Basic Relays</a> |
-    <a href="advancedRelays">Advanced Relays</a> |
+    <a href="inputs">Inputs</a> |
+    <a href="outputs">Outputs</a> |
     <a href="servos">Servos</a>
     </nav>
     <br />
@@ -356,7 +353,7 @@ void MQTTContainer::buildIndexWebPage() {
     indexWebPage = replaceAll(WebPageHTML);
 }
 
-void MQTTContainer::buildBasicRelaysWebPage() {
+void MQTTContainer::buildOutputsWebPage() {
     const char WebPageHTML[] = R"rawliteral(
     <!DOCTYPE HTML>
     <html>
@@ -406,9 +403,8 @@ void MQTTContainer::buildBasicRelaysWebPage() {
     <br />
     <nav>
     <a href="/">Home</a> |
-    <a href="sensors">Sensors</a> |
-    Basic Relays |
-    <a href="advancedRelays">Advanced Relays</a> |
+    <a href="inputs">Inputs</a> |
+    Outputs |
     <a href="servos">Servos</a>
     </nav>
     <br />
@@ -416,143 +412,39 @@ void MQTTContainer::buildBasicRelaysWebPage() {
     )rawliteral";
 
 
-    basicRelaysWebPage += WebPageHTML;
+    outputsWebPage += WebPageHTML;
 
-    basicRelaysWebPage += "<table>\n";
+    outputsWebPage += "<table>\n";
 
-    basicRelaysWebPage += "<tr>";
-    basicRelaysWebPage += "<td>Relay Pin</td>";
-    basicRelaysWebPage += "<td>Relay Topic</td>";
-    basicRelaysWebPage += "<td>Relay State</td>";
-    basicRelaysWebPage += "</tr>\n";
+    outputsWebPage += "<tr>";
+    outputsWebPage += "<td>Output Pin</td>";
+    outputsWebPage += "<td>Output Topic</td>";
+    outputsWebPage += "<td>Output State</td>";
+    outputsWebPage += "</tr>\n";
     
     // Add a table row for each basic relay.
-    for (MQTTRelay* relay : relayBasicList) {
-        basicRelaysWebPage += "<tr>";
-        basicRelaysWebPage += "<td>";
-		basicRelaysWebPage += relay->getPinString();
-        basicRelaysWebPage += "</td>";
-        basicRelaysWebPage += "<td>";
-		basicRelaysWebPage += String(relay->getRelayTopic());
-        basicRelaysWebPage += "</td>";
-        basicRelaysWebPage += "<td><div id='s";
+    for (MQTTOutput* output : outputList) {
+        outputsWebPage += "<tr>";
+        outputsWebPage += "<td>";
+		outputsWebPage += output->getPinString();
+        outputsWebPage += "</td>";
+        outputsWebPage += "<td>";
+		outputsWebPage += String(output->getRelayTopic());
+        outputsWebPage += "</td>";
+        outputsWebPage += "<td><div id='s";
         //basicRelaysWebPage += relay->getPinString();
-        basicRelaysWebPage += relay->getPinID();
-        basicRelaysWebPage += "'></div>";
-        basicRelaysWebPage += "</td>";
-        basicRelaysWebPage += "</tr>\n";
+        outputsWebPage += output->getPinID();
+        outputsWebPage += "'></div>";
+        outputsWebPage += "</td>";
+        outputsWebPage += "</tr>\n";
 	}
 
-    basicRelaysWebPage += "</table>";
-    basicRelaysWebPage += "</body>";
-    basicRelaysWebPage += "</html>";
+    outputsWebPage += "</table>";
+    outputsWebPage += "</body>";
+    outputsWebPage += "</html>";
 }
 
-void MQTTContainer::buildAdvancedRelaysWebPage() {
-    const char WebPageHTML[] = R"rawliteral(
-    <!DOCTYPE HTML>
-    <html>
-    <head>
-    <title>MQTT Interface</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style type = "text/css"> 
-        .textinput { 
-        width: 100px;
-        background-color: Gold;
-        }
-        .textreadonly {
-        width: 100px;
-        background-color: White;
-        }
-        .texthidden {
-        display: none;
-        }
-        table {
-        border: 1px solid blue;
-        border-spacing: 10px;
-        }
-        td {
-        vertical-align: middle;
-        border-bottom: 1px solid #ddd;
-        }
-    </style> 
-
-    <script>
-        var Socket;
-        function init() {
-            Socket = new WebSocket('ws://' + window.location.hostname + ':81/');
-            Socket.onmessage = function(event) {
-                console.log('message received ' + event.data);
-                try {
-                    document.getElementById(event.data.slice(0,4)).innerHTML = event.data.slice(4);
-                }
-                catch (e) {}
-            }
-            Socket.onopen = function(event) {console.log('Connection opened');}
-            Socket.onerror = function(event) {console.log('Error');}
-        }
-    </script>
-    </head>
-    <body onload='javascript:init()'>
-
-    <br />
-    <nav>
-    <a href="/">Home</a> |
-    <a href="sensors">Sensors</a> |
-    <a href="basicRelays">Basic Relays</a> |
-    Advanced Relays |
-    <a href="servos">Servos</a>
-    </nav>
-    <br />
-
-    )rawliteral";
-
-
-    advancedRelaysWebPage += WebPageHTML;
-
-    // advancedRelaysWebPage += "</head>";
-    // advancedRelaysWebPage += "<body onload='javascript:init()'>";
-
-    // advancedRelaysWebPage += "<br />";
-    // advancedRelaysWebPage += "<a href='/'>Home</a>";
-    // advancedRelaysWebPage += "<br />";
-    // advancedRelaysWebPage += "<br />";
-
-    advancedRelaysWebPage += "<table>\n";
-
-    advancedRelaysWebPage += "<tr>";
-    advancedRelaysWebPage += "<td>Relay Pin</td>";
-    advancedRelaysWebPage += "<td>Relay Operate Topic</td>";
-    advancedRelaysWebPage += "<td>Relay Release Topic</td>";
-    advancedRelaysWebPage += "<td>Relay State</td>";
-    advancedRelaysWebPage += "</tr>\n";
-    
-    // Add a table row for each basic relay.
-    for (MQTTRelay* relay : relayAdvancedList) {
-        advancedRelaysWebPage += "<tr>";
-        advancedRelaysWebPage += "<td>";
-		advancedRelaysWebPage += relay->getPinString();
-        advancedRelaysWebPage += "</td>";
-        advancedRelaysWebPage += "<td>";
-		advancedRelaysWebPage += String(relay->getRelayOperateTopic());
-        advancedRelaysWebPage += "</td>";
-        advancedRelaysWebPage += "<td>";
-		advancedRelaysWebPage += String(relay->getRelayReleaseTopic());
-        advancedRelaysWebPage += "</td>";
-        advancedRelaysWebPage += "<td><div id='s";
-        //advancedRelaysWebPage += relay->getPinString();
-        advancedRelaysWebPage += relay->getPinID();
-        advancedRelaysWebPage += "'></div>";
-        advancedRelaysWebPage += "</td>";
-        advancedRelaysWebPage += "</tr>\n";
-	}
-
-    advancedRelaysWebPage += "</table>";
-    advancedRelaysWebPage += "</body>";
-    advancedRelaysWebPage += "</html>";
-}
-
-void MQTTContainer::buildSensorsWebPage() {
+void MQTTContainer::buildInputsWebPage() {
     const char WebPageHTML[] = R"rawliteral(
     <!DOCTYPE HTML>
     <html>
@@ -602,9 +494,8 @@ void MQTTContainer::buildSensorsWebPage() {
     <br />
     <nav>
     <a href="/">Home</a> |
-    Sensors |
-    <a href="basicRelays">Basic Relays</a> |
-    <a href="advancedRelays">Advanced Relays</a> |
+    Inputs |
+    <a href="outputs">Outputs</a> |
     <a href="servos">Servos</a>
     </nav>
     <br />
@@ -612,36 +503,36 @@ void MQTTContainer::buildSensorsWebPage() {
     )rawliteral";
 
 
-    sensorsWebPage += WebPageHTML;
+    inputsWebPage += WebPageHTML;
 
-    sensorsWebPage += "<table>\n";
+    inputsWebPage += "<table>\n";
 
-    sensorsWebPage += "<tr>";
-    sensorsWebPage += "<td>Sensor Pin</td>";
-    sensorsWebPage += "<td>Sensor Topic</td>";
-    sensorsWebPage += "<td>Sensor State</td>";
-    sensorsWebPage += "</tr>\n";
+    inputsWebPage += "<tr>";
+    inputsWebPage += "<td>Input Pin</td>";
+    inputsWebPage += "<td>Input Topic</td>";
+    inputsWebPage += "<td>Input State</td>";
+    inputsWebPage += "</tr>\n";
     
     // Add a table row for each basic relay.
-    for (MQTTSensor* sensor : sensorList) {
-        sensorsWebPage += "<tr>";
-        sensorsWebPage += "<td>";
-		sensorsWebPage += sensor->getPinString();
-        sensorsWebPage += "</td>";
-        sensorsWebPage += "<td>";
-		sensorsWebPage += String(sensor->getSensorTopic());
-        sensorsWebPage += "</td>";
-        sensorsWebPage += "<td><div id='s";
-        // sensorsWebPage += sensor->getPinString();
-        sensorsWebPage += sensor->getPinID();
-        sensorsWebPage += "'></div>";
-        sensorsWebPage += "</td>";
-        sensorsWebPage += "</tr>\n";
+    for (MQTTInput* input : inputList) {
+        inputsWebPage += "<tr>";
+        inputsWebPage += "<td>";
+		inputsWebPage += input->getPinString();
+        inputsWebPage += "</td>";
+        inputsWebPage += "<td>";
+		inputsWebPage += String(input->getSensorTopic());
+        inputsWebPage += "</td>";
+        inputsWebPage += "<td><div id='s";
+        // inputsWebPage += sensor->getPinString();
+        inputsWebPage += input->getPinID();
+        inputsWebPage += "'></div>";
+        inputsWebPage += "</td>";
+        inputsWebPage += "</tr>\n";
 	}
 
-    sensorsWebPage += "</table>";
-    sensorsWebPage += "</body>";
-    sensorsWebPage += "</html>";
+    inputsWebPage += "</table>";
+    inputsWebPage += "</body>";
+    inputsWebPage += "</html>";
 }
 
 void MQTTContainer::publishStartupMessage() {
@@ -685,7 +576,7 @@ String MQTTContainer::replaceAll(String s) {
     s.replace("%IP%", WiFi.localIP().toString());
     s.replace("%SERVOS%",  getServosJSON());
     s.replace("%BASIC_RELAYS%", getBasicRelaysJSON());
-    s.replace("%ADVANCED_RELAYS%", getAdvancedRelaysJSON());
+    // s.replace("%ADVANCED_RELAYS%", getAdvancedRelaysJSON());
     s.replace("%SENSORS%", getSensorsJSON());
     return s;
 }
@@ -710,11 +601,11 @@ String MQTTContainer::getServosJSON() {
 String MQTTContainer::getBasicRelaysJSON() {
     String retValue = "";
 
-    for (MQTTRelay* relay : relayBasicList) {
+    for (MQTTOutput* output : outputList) {
        retValue += "{\"Pin\": \"";
-       retValue += relay->getPinNumber();
+       retValue += output->getPinNumber();
        retValue += "\", \"Topic\": \"";
-       retValue += relay->getRelayTopic();
+       retValue += output->getRelayTopic();
        retValue += "\"},\n";
 	}
 
@@ -724,33 +615,33 @@ String MQTTContainer::getBasicRelaysJSON() {
     return retValue;
 }
 
-String MQTTContainer::getAdvancedRelaysJSON() {
-    String retValue = "";
+// String MQTTContainer::getAdvancedRelaysJSON() {
+//     String retValue = "";
 
-    for (MQTTRelay* relay : relayAdvancedList) {
-       retValue += "{\"Pin\": \"";
-       retValue += relay->getPinNumber();
-       retValue += "\", \"Operate topic\": \"";
-       retValue += relay->getRelayOperateTopic();
-       retValue += "\", \"Release topic\": \"";
-       retValue += relay->getRelayReleaseTopic();
-       retValue += "\"},\n";
-	}
+//     for (MQTTOutput* relay : relayAdvancedList) {
+//        retValue += "{\"Pin\": \"";
+//        retValue += relay->getPinNumber();
+//        retValue += "\", \"Operate topic\": \"";
+//        retValue += relay->getRelayOperateTopic();
+//        retValue += "\", \"Release topic\": \"";
+//        retValue += relay->getRelayReleaseTopic();
+//        retValue += "\"},\n";
+// 	}
 
-    // Remove last ",".
-    retValue = retValue.substring(0, retValue.length() - 2);
+//     // Remove last ",".
+//     retValue = retValue.substring(0, retValue.length() - 2);
 
-    return retValue;
-}
+//     return retValue;
+// }
 
 String MQTTContainer::getSensorsJSON() {
     String retValue = "";
 
-    for (MQTTSensor* sensor : sensorList) {
+    for (MQTTInput* input : inputList) {
        retValue += "{\"Pin\": \"";
-       retValue += sensor->getPinNumber();
+       retValue += input->getPinNumber();
        retValue += "\", \"Topic\": \"";
-       retValue += sensor->getSensorTopic();
+       retValue += input->getSensorTopic();
        retValue += "\"},\n";
 	}
 
@@ -946,9 +837,8 @@ void MQTTContainer::buildServosWebPage() {
     <br />
     <nav>
     <a href="/">Home</a> |
-    <a href="sensors">Sensors</a> |
-    <a href="basicRelays">Basic Relays</a> |
-    <a href="advancedRelays">Advanced Relays</a> |
+    <a href="inputs">Inputs</a> |
+    <a href="outputs">Outputs</a> |
     Servos
     </nav>
     <br />
