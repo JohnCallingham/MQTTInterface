@@ -232,31 +232,19 @@ void MQTTContainer::callback(char* topic, byte* payload, unsigned int length) {
         message = MQTTServo::receivedMessageEnum::messageClosed;
     }
 
-    // Using the topic of the received messaage, determine which servo this message is for.
+    // Using the topic of the received message, determine which servo this message is for.
     for (MQTTServo* servo : servoList) {
         if (strcmp(topic, servo->getTurnoutTopic()) == 0) {
             servo->messageReceived(message);
         }
     }
 
-    // Using the topic of the received messaage, determine which relay this message is for.
+    // Using the topic of the received messaage, determine which output this message is for.
     for (MQTTOutput* output : outputList) {
         if (strcmp(topic, output->getRelayTopic()) == 0) {
-            output->receivedRelayTopic(charPayload);
+            output->messageReceived(charPayload);
         }
     }
-
-    // for (MQTTOutput* relay : relayAdvancedList) {
-    //     if (strcmp(topic, relay->getRelayOperateTopic()) == 0) {
-    //         relay->receivedRelayOperateTopic(charPayload);
-    //     }
-    // }
-
-    // for (MQTTOutput* relay : relayAdvancedList) {
-    //     if (strcmp(topic, relay->getRelayReleaseTopic()) == 0) {
-    //         relay->receivedRelayReleaseTopic(charPayload);
-    //     }
-    // }
 }
 
 void MQTTContainer::buildIndexWebPage() {

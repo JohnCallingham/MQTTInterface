@@ -1,6 +1,6 @@
 /*
-Basic - subscribes to a single topic - ACTIVE operates the relay, INACTIVE releases the relay.
-Advanced - subscribes to two topics - one topic ACTIVE operates the realy, the other topic ACTIVE releases the relay.
+ACTIVE or ON turns the output on.
+INACTIVE or OFF turns the output off.
 */
 #include <MQTTOutput.h>
 #include <WebSocketsServer.h>
@@ -24,71 +24,28 @@ MQTTOutput::MQTTOutput(uint8_t pinNumber, const char* relayTopic, PCF8575* pcf85
     configurePin();
 
     // Initialise to released.
-    strcpy(this->currentState, "Released");
+    strcpy(this->currentState, "Off");
 }
 
-// MQTTOutput::MQTTOutput(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic, PCF8575* pcf8575) {
-//     // Store the parameters.
-//     this->pinNumber = pinNumber;
-//     this->relayOperateTopic = relayOperateTopic;
-//     this->relayReleaseTopic = relayReleaseTopic;
-//     this->pcf8575 = pcf8575;
-
-//     if (this->pcf8575 == NULL) {
-//         sprintf(this->pinString, "N%02i", this->pinNumber);
-//         sprintf(this->pinID, "N%02i", this->pinNumber);
-//     } else {
-//         sprintf(this->pinString, "X%02i", this->pinNumber);
-//         sprintf(this->pinID, "X%02i", this->pinNumber + 16);
-//     }
-
-//     configurePin();
-
-//     // Initialise to released.
-//     strcpy(this->currentState, "Released");
-// }
-
-void MQTTOutput::receivedRelayTopic(char* payload) {
+void MQTTOutput::messageReceived(char* payload) {
     // JMRI sensors send "ACTIVE" or "INACTIVE". JMRI lights send "ON" or "OFF".
     // If payload == "ACTIVE" or "ON", operate relay.
     // If payload == "INACTIVE" or "OFF", release relay.
     if ((strcmp(payload, "ACTIVE") == 0) || (strcmp(payload, "ON")) == 0) {
-        Serial.printf("Basic relay on pin %i operated\n", this->pinNumber);
+        Serial.printf("Output on pin %i on\n", this->pinNumber);
         // digitalWrite(this->pinNumber, LOW);
         updatePin(LOW);
-        strcpy (this->currentState, "Operated");
+        strcpy (this->currentState, "On");
         updateWebPage();
     }
     if ((strcmp(payload, "INACTIVE") == 0) || (strcmp(payload, "OFF")) == 0) {
-        Serial.printf("Basic relay on pin %i released\n", this->pinNumber);
+        Serial.printf("Output on pin %i off\n", this->pinNumber);
         // digitalWrite(this->pinNumber, HIGH);
         updatePin(HIGH);
-        strcpy (this->currentState, "Released");
+        strcpy (this->currentState, "Off");
         updateWebPage();
     }
 }
-
-// void MQTTOutput::receivedRelayOperateTopic(char* payload) {
-//     // If payload == "ACTIVE", operate relay.
-//     // If payload == "INACTIVE", do nothing.
-//     if (strcmp(payload, "ACTIVE") == 0) {
-//         Serial.printf("Advanced relay on pin %i operated\n", this->pinNumber);
-//         updatePin(LOW);
-//         strcpy (this->currentState, "Operated");
-//         updateWebPage();
-//     }
-// }
-
-// void MQTTOutput::receivedRelayReleaseTopic(char* payload) {
-//     // If payload == "ACTIVE", release relay.
-//     // If payload == "INACTIVE", do nothing.
-//     if(strcmp(payload, "ACTIVE") == 0) {
-//         Serial.printf("Advanced relay on pin %i released\n", this->pinNumber);
-//         updatePin(HIGH);
-//         strcpy (this->currentState, "Released");
-//         updateWebPage();
-//     }
-// }
 
 void MQTTOutput::updateWebPage() {
     // Update the web socket.

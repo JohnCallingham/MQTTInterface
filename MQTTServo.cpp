@@ -24,6 +24,18 @@ MQTTServo::MQTTServo(uint8_t pinNumber, const char* turnoutTopic, Adafruit_PWMSe
     configurePin();
 }
 
+void MQTTServo::setAngleClosed(int angleClosed) {
+    this->angleClosed = angleClosed;
+    this->currentServoAngle = angleClosed; // Need to reset the current angle to prevent going to 0 or 180.
+    calculatePeriods(); // Need to recalculate to keep a consistent movement time with different angles.
+}
+
+void MQTTServo::setAngleThrown(int angleThrown) {
+    this->angleThrown = angleThrown;
+    this->currentServoAngle = angleThrown; // Need to reset the current angle to prevent going to 0 or 180.
+    calculatePeriods(); // Need to recalculate to keep a consistent movement time with different angles.
+}
+
 void MQTTServo::loop() {
     if (!initialised) {
         calculatePeriods();
@@ -58,15 +70,18 @@ void MQTTServo::messageReceived(receivedMessageEnum message) {
 
             switch(message) {
                 case messageThrown:
-                    handleStateTransition(stateMoving_Towards_Thrown, "INACTIVE", "INACTIVE");
+                    handleStateTransition(stateMoving_Towards_Thrown, "INACTIVE", "INACTIVE", "OFF");
                     break;
                 case messageClosed:
-                    handleStateTransition(stateMoving_Towards_Closed, "INACTIVE", "INACTIVE");
+                    handleStateTransition(stateMoving_Towards_Closed, "INACTIVE", "INACTIVE", "OFF");
                     break;
                 case reachedThrown:
                     // Error.
                     break;
                 case reachedClosed:
+                    // Error.
+                    break;
+                case reachedMidPoint:
                     // Error.
                     break;
             }
@@ -74,15 +89,18 @@ void MQTTServo::messageReceived(receivedMessageEnum message) {
         case stateThrown:
             switch(message) {
                 case messageThrown:
-                    handleStateTransition(stateThrown, "ACTIVE", "INACTIVE");
+                    handleStateTransition(stateThrown, "ACTIVE", "INACTIVE", "OFF");
                     break;
                 case messageClosed:
-                    handleStateTransition(stateMoving_Towards_Closed, "INACTIVE", "INACTIVE");
+                    handleStateTransition(stateMoving_Towards_Closed, "INACTIVE", "INACTIVE", "OFF");
                     break;
                 case reachedThrown:
                     // Error.
                     break;
                 case reachedClosed:
+                    // Error.
+                    break;
+                case reachedMidPoint:
                     // Error.
                     break;
             }
@@ -90,31 +108,37 @@ void MQTTServo::messageReceived(receivedMessageEnum message) {
         case stateMoving_Towards_Closed:
             switch(message) {
                 case messageThrown:
-                    handleStateTransition(stateMoving_Towards_Thrown, "INACTIVE", "INACTIVE");
+                    handleStateTransition(stateMoving_Towards_Thrown, "INACTIVE", "INACTIVE", "OFF");
                     break;
                 case messageClosed:
-                    handleStateTransition(stateMoving_Towards_Closed, "INACTIVE", "INACTIVE");
+                    handleStateTransition(stateMoving_Towards_Closed, "INACTIVE", "INACTIVE", "OFF");
                     break;
                 case reachedThrown:
                     // Error.
                     break;
                 case reachedClosed:
-                    handleStateTransition(stateClosed, "INACTIVE", "ACTIVE");
+                    handleStateTransition(stateClosed, "INACTIVE", "ACTIVE", "ON");
+                    break;
+                case reachedMidPoint:
+                    handleStateTransition(stateMoving_Towards_Closed, "INACTIVE", "INACTIVE", "ON");
                     break;
             }
             break;
         case stateClosed:
             switch(message) {
                 case messageThrown:
-                    handleStateTransition(stateMoving_Towards_Thrown, "INACTIVE", "INACTIVE");
+                    handleStateTransition(stateMoving_Towards_Thrown, "INACTIVE", "INACTIVE", "ON");
                     break;
                 case messageClosed:
-                    handleStateTransition(stateClosed, "INACTIVE", "ACTIVE");
+                    handleStateTransition(stateClosed, "INACTIVE", "ACTIVE", "ON");
                     break;
                 case reachedThrown:
                     // Error.
                     break;
                 case reachedClosed:
+                    // Error.
+                    break;
+                case reachedMidPoint:
                     // Error.
                     break;
             }
@@ -122,30 +146,33 @@ void MQTTServo::messageReceived(receivedMessageEnum message) {
         case stateMoving_Towards_Thrown:
             switch(message) {
                 case messageThrown:
-                    handleStateTransition(stateMoving_Towards_Thrown, "INACTIVE", "INACTIVE");
+                    handleStateTransition(stateMoving_Towards_Thrown, "INACTIVE", "INACTIVE", "ON");
                     break;
                 case messageClosed:
-                    handleStateTransition(stateMoving_Towards_Closed, "INACTIVE", "INACTIVE");
+                    handleStateTransition(stateMoving_Towards_Closed, "INACTIVE", "INACTIVE", "ON");
                     break;
                 case reachedThrown:
-                    handleStateTransition(stateThrown, "ACTIVE", "INACTIVE");
+                    handleStateTransition(stateThrown, "ACTIVE", "INACTIVE", "OFF");
                     break;
                 case reachedClosed:
                     // Error.
+                    break;
+                case reachedMidPoint:
+                    handleStateTransition(stateMoving_Towards_Thrown, "INACTIVE", "INACTIVE", "OFF");
                     break;
             }
             break;
     }
 }
 
-void MQTTServo::handleStateTransition(stateEnum newState, const char* thrownSensorMessage, const char* closedSensorMessage) {
-    // Serial.printf("State changed from '%i' to '%i'\n", currentState, newState);
+void MQTTServo::handleStateTransition(stateEnum newState, const char* thrownMessage, const char* closedMessage, const char* midPointMessage) {
     Serial.printf("Servo on pin %s state changed from '%s' to '%s'\n", this->pinString, stateString(this->currentState), stateString(newState));
 
     this->currentState = newState;
 
-    publishMQTTSensor(thrownSensorTopic, thrownSensorMessage);
-    publishMQTTSensor(closedSensorTopic, closedSensorMessage);
+    publishMQTTSensor(this->thrownTopic, thrownMessage);
+    publishMQTTSensor(this->closedTopic, closedMessage);
+    publishMQTTSensor(this->midPointTopic, midPointMessage);
 
     updateWebPageState();
 }
@@ -219,6 +246,12 @@ void MQTTServo::adjustMovingTowardsClosed() {
 
         this->lastTimeServoMoved = millis();
 
+        // Have we reached the mid point angle?
+        if (this->currentServoAngle == this->angleMidPoint) {
+            // Yes, so send the appropriate MQTT message.
+            messageReceived(reachedMidPoint);
+        }
+
         // Have we reached the end angle?
         // if (this->currentServoAngle > this->angleClosed) {
         if (this->currentServoAngle == this->angleClosed) {
@@ -253,6 +286,12 @@ void MQTTServo::adjustMovingTowardsThrown() {
 
         this->lastTimeServoMoved = millis();
 
+        // Have we reached the mid point angle?
+        if (this->currentServoAngle == this->angleMidPoint) {
+            // Yes, so send the appropriate MQTT message.
+            messageReceived(reachedMidPoint);
+        }
+
         // Have we reached the end angle?
         // if (this->currentServoAngle < this->angleThrown) {
         if (this->currentServoAngle == this->angleThrown) {
@@ -268,14 +307,23 @@ void MQTTServo::adjustMovingTowardsThrown() {
 }
 
 void MQTTServo::calculatePeriods() {
+    int angleBetweenClosedThrown;
+
     // Calculates how often to move the servo to achieve a complete transition from one state to another in timeFrom..._mS.
     // Accomodates either the thrown or closed angle being the largest.
     if (this->angleClosed == this->angleThrown) {
         movePeriodToClosed_mS = timeFromThrownToClosed_mS / 50; // TO DO sort a more sensible value.
         movePeriodToThrown_mS = timeFromClosedToThrown_mS / 50; // TO DO still goes to 180 when setting both T and C !!!
+        angleMidPoint = this->angleClosed;
     } else {
-        movePeriodToClosed_mS = timeFromThrownToClosed_mS/abs(angleClosed - angleThrown);
-        movePeriodToThrown_mS = timeFromClosedToThrown_mS/abs(angleClosed - angleThrown);
+        angleBetweenClosedThrown = abs(angleClosed - angleThrown);
+        movePeriodToClosed_mS = timeFromThrownToClosed_mS/angleBetweenClosedThrown;
+        movePeriodToThrown_mS = timeFromClosedToThrown_mS/angleBetweenClosedThrown;
+        if (angleClosed < angleThrown) {
+            angleMidPoint = angleClosed + (angleBetweenClosedThrown/2); // error if odd?
+        } else {
+            angleMidPoint = angleThrown + (angleBetweenClosedThrown/2); // error if odd?
+        }
     }
 }
 

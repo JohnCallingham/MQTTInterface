@@ -13,15 +13,17 @@ class MQTTServo {
             messageThrown,
             messageClosed,
             reachedThrown,
-            reachedClosed
+            reachedClosed,
+            reachedMidPoint
         };
 
-        void setAngleClosed(int angleClosed) {this->angleClosed = angleClosed; this->currentServoAngle = angleClosed;} // Need to reset the curernt angle to prevent going to 0 or 180.
-        void setAngleThrown(int angleThrown) {this->angleThrown = angleThrown; this->currentServoAngle = angleThrown;} // Need to reset the curernt angle to prevent going to 0 or 180.
+        void setAngleClosed(int angleClosed);
+        void setAngleThrown(int angleThrown);
         void setTimeFromClosedToThrown_mS(unsigned long timeFromClosedToThrown_mS) {this->timeFromClosedToThrown_mS = timeFromClosedToThrown_mS;}
         void setTimeFromThrownToClosed_mS(unsigned long timeFromThrownToClosed_mS) {this->timeFromThrownToClosed_mS = timeFromThrownToClosed_mS;}
-        void setThrownSensorTopic(const char* thrownSensorTopic) {this->thrownSensorTopic = thrownSensorTopic;}
-        void setClosedSensorTopic(const char* closedSensorTopic) {this->closedSensorTopic = closedSensorTopic;}
+        void setThrownTopic(const char* thrownTopic) {this->thrownTopic = thrownTopic;}
+        void setClosedTopic(const char* closedTopic) {this->closedTopic = closedTopic;}
+        void setMidPointTopic(const char* midPointTopic) {this->midPointTopic = midPointTopic;}
         void setCurrentAngle(int angle) {this->currentServoAngle = angle;}
 
         uint8_t getPinNumber() {return this->pinNumber;}
@@ -52,16 +54,15 @@ class MQTTServo {
         char pinString[10];
         Adafruit_PWMServoDriver* pwm = NULL; // NULL means use the GPIO pins on the 8266. If non NULL, then points to the object to drive the pins.
         const char* turnoutTopic;
-        //WiFiClient wifiClient;
 
-        // const char* mqttBroker = "raspberrypi";
-        // uint16_t mqttPort = 1883;
         int angleThrown = 100;
         int angleClosed = 80;
+        int angleMidPoint = 90;
         unsigned long timeFromThrownToClosed_mS = 1000;
         unsigned long timeFromClosedToThrown_mS = 1000;
-        const char* thrownSensorTopic = "";
-        const char* closedSensorTopic = "";
+        const char* thrownTopic = "";
+        const char* closedTopic = "";
+        const char* midPointTopic = "";
 
         int currentServoAngle;
         unsigned long movePeriodToClosed_mS;
@@ -69,7 +70,7 @@ class MQTTServo {
         unsigned long lastTimeServoMoved;
 
         void calculatePeriods(); 
-        void handleStateTransition(stateEnum newState, const char* thrownSensorMessage, const char* closedSensorMessage);
+        void handleStateTransition(stateEnum newState, const char* thrownSensorMessage, const char* closedSensorMessage, const char* midPointMessage);
         const char* stateString(stateEnum state);
         void adjustServoPosition();
         void adjustMovingTowardsClosed();
