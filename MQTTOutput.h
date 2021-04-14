@@ -6,12 +6,12 @@
 class MQTTOutput {
     public:
 
-        MQTTOutput(uint8_t pinNumber, const char* relayTopic, PCF8575* pcf8575);
+        MQTTOutput(uint8_t pinNumber, const char* outputTopic, PCF8575* pcf8575);
 
         uint8_t getPinNumber() {return this->pinNumber;}
         char* getPinString() {return this->pinString;}
         char* getPinID() {return this->pinID;}
-        const char* getRelayTopic() {return this->relayTopic;}
+        const char* getOutputTopic() {return this->outputTopic;}
 
         void updateWebPage();
 
@@ -23,7 +23,7 @@ class MQTTOutput {
         char pinString[10];
         char pinID[10];
         PCF8575* pcf8575 = NULL; // NULL means use the GPIO pins on the 8266. If non NULL, then points to the object to drive the pins.
-        const char* relayTopic;
+        const char* outputTopic;
 
         char currentState[20];
 

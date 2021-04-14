@@ -8,16 +8,19 @@
 class MQTTInput {
 
     public:
-        MQTTInput(uint8_t pinNumber, const char* sensorTopic, PCF8575* pcf8575);
+        MQTTInput(uint8_t pinNumber, const char* inputTopic, PCF8575* pcf8575);
 
         void loop();
 
         void setDebounceDelay_mS(unsigned long debounceDelay_mS) {this->debounceDelay_mS = debounceDelay_mS;}
+        //void setInputType(inputTypeEnum inputType) {this->inputType = inputType;}
+        void setActiveMessage(const char* activeMessage) {this->activeMessage = activeMessage;}
+        void setInactiveMessage(const char* inactiveMessage) {this->inactiveMessage = inactiveMessage;}
 
         uint8_t getPinNumber() {return this->pinNumber;}
         char* getPinString() {return this->pinString;}
         char* getPinID() {return this->pinID;}
-        const char* getSensorTopic() {return this->sensorTopic;}
+        const char* getInputTopic() {return this->inputTopic;}
 
         void updateWebPage();
 
@@ -28,7 +31,9 @@ class MQTTInput {
         char pinString[10];
         char pinID[10];
         PCF8575* pcf8575 = NULL; // NULL means use the GPIO pins on the 8266. If non NULL, then points to the object to read the pins.
-        const char* sensorTopic;
+        const char* inputTopic;
+        const char* activeMessage = "ACTIVE"; // If set will override the 'ACTIVE' message.
+        const char* inactiveMessage = "INACTIVE"; // If set will override the 'INACTIVE' message.
 
         void readPin();
 

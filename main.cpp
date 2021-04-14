@@ -5,6 +5,7 @@
 #include <MQTTContainer.h>
 #include <WebSocketsServer.h>
 #include <MQTTOutput.h>
+#include <MQTTInput.h>
 #include <PCF8575.h>
 #include <Adafruit_PWMServoDriver.h>
 
@@ -28,14 +29,20 @@ MQTTContainer container;
 MQTTInput* input1 = container.addInput(14, "trains/track/sensor/GPIO14");
 
 // Create a pointer to an MQTTInput object which is connected to port 5 of the I2C I/O expander.
-//  MQTTInput* sensor2 = container.addInput(10, "trains/track/sensor/Port5", pcf8575);
+MQTTInput* input2 = container.addInput(5, "trains/track/sensor/Port5", pcf8575);
+
+// Create a pointer to an MQTTInput object whose ACTIVE message will be changed in later code.
+MQTTInput* input3 = container.addInput(6, "trains/track/turnout/123", pcf8575);
+
+// Create a pointer to an MQTTInput object whose ACTIVE message will be changed in later code.
+MQTTInput* input4 = container.addInput(7, "trains/track/turnout/123", pcf8575);
 
 // Create a pointer to an MQTTOutput object which is connected to an 8266 GPIO pin.
 //  This will actually turn the built in LED on and off for testing.
 MQTTOutput* output1 = container.addOutput(LED_BUILTIN, "trains/track/light/L001");
 
 // Create a pointer to an MQTTOutput object which represents an output which is connected to port 14 of the I2C I/O expander.
-MQTTOutput* output2 = container.addOutput(14, "trains/track/light/L001", pcf8575);
+MQTTOutput* output2 = container.addOutput(14, "trains/track/light/L002", pcf8575);
 
 // Create a pointer to an MQTTServo object which is connected port 0 of the I2C PWM expander.
 MQTTServo* servo1 = container.addServo(0, "trains/track/turnout/123", pwm);
@@ -65,8 +72,9 @@ void setup() {
 
   container.setStartupTopic("events");
 
-  servo1->setClosedSensorTopic("trains/track/sensor/456");
-  servo1->setThrownSensorTopic("trains/track/sensor/789");
+  servo1->setClosedTopic("trains/track/sensor/456");
+  servo1->setThrownTopic("trains/track/sensor/789");
+  servo1->setMidPointTopic("trains/track/light/L001");
 
   servo1->setAngleClosed(80);
   servo1->setAngleThrown(100);
@@ -76,6 +84,14 @@ void setup() {
 
   // servo2->setTimeFromClosedToThrown_mS(1000);
   // servo2->setTimeFromThrownToClosed_mS(1000);
+
+  // Modify the active and inactive messages which are published by the input1 object.
+  // This means that input1 can be controlled by a button which will position a turnout to its thrown position.
+  // Another input will be connected to another button which will set the turnout to its closed position.
+  //input1->setActiveMessage("THROWN");
+  //input1->setInactiveMessage("");
+  input2->setActiveMessage("CLOSED");
+  input2->setInactiveMessage("");
 
 }
 

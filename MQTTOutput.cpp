@@ -7,10 +7,10 @@ INACTIVE or OFF turns the output off.
 
 extern WebSocketsServer webSocket;
 
-MQTTOutput::MQTTOutput(uint8_t pinNumber, const char* relayTopic, PCF8575* pcf8575) {
+MQTTOutput::MQTTOutput(uint8_t pinNumber, const char* outputTopic, PCF8575* pcf8575) {
     // Store the parameters.
     this->pinNumber = pinNumber;
-    this->relayTopic = relayTopic;
+    this->outputTopic = outputTopic;
     this->pcf8575 = pcf8575;
 
     if (this->pcf8575 == NULL) {

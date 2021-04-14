@@ -5,10 +5,10 @@
 extern WebSocketsServer webSocket;
 extern PubSubClient mqttClient;
 
-MQTTInput::MQTTInput(uint8_t pinNumber, const char* sensorTopic, PCF8575* pcf8575) {
+MQTTInput::MQTTInput(uint8_t pinNumber, const char* inputTopic, PCF8575* pcf8575) {
     // Store the parameters.
     this->pinNumber = pinNumber;
-    this->sensorTopic = sensorTopic;
+    this->inputTopic = inputTopic;
     this->pcf8575 = pcf8575;
 
     if (this->pcf8575 == NULL) {
@@ -62,17 +62,24 @@ void MQTTInput::publishMQTTSensor() {
     char payload[10];
 
     if (this->currentState == HIGH) {
-        strcpy(payload, "INACTIVE");
+        // Use the default message if inactiveMessage is not set.
+        // strcpy(payload, "INACTIVE");
+        strcpy(payload, this->inactiveMessage);
     } else {
-        strcpy(payload, "ACTIVE");
+        // Use the default message if activeMessage is not set.
+        // strcpy(payload, "ACTIVE");
+        strcpy(payload, this->activeMessage);
     }
 
     // Publish the payload to the sensor topic. Retained is set to False.
-    mqttClient.publish(this->sensorTopic, payload, false);
+    // If this input is connected to a button which positions a turnout, then there will not be an inactive mesasge.
+    if (strlen(payload) > 0) {
+        mqttClient.publish(this->inputTopic, payload, false);
+    }
 
     this->updateWebPage();
 
-    Serial.printf("Message published to topic [%s]  %s\n", this->sensorTopic, payload);
+    Serial.printf("Message published to topic [%s]  %s\n", this->inputTopic, payload);
 }
 
 void MQTTInput::updateWebPage() {
@@ -108,7 +115,7 @@ int MQTTInput::getPin() {
         // Using the I/O expander.
         //return pcf8575->digitalRead(pinNumber); // or use digitalInput() ??? causing repeated output of 0 to the serial port
 
-        //return 0; //keep the compiler happy for now!
+        return 0; //keep the compiler happy for now!
         
     }
 }

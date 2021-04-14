@@ -33,12 +33,12 @@ MQTTServo* MQTTContainer::addServo(uint8_t pinNumber, const char* servoTopic, Ad
     return newServo;
 }
 
-MQTTOutput* MQTTContainer::addOutput(uint8_t pinNumber, const char* relayTopic) {
-    return this->addOutput(pinNumber, relayTopic, (PCF8575*)NULL);
+MQTTOutput* MQTTContainer::addOutput(uint8_t pinNumber, const char* outputTopic) {
+    return this->addOutput(pinNumber, outputTopic, (PCF8575*)NULL);
 }
 
-MQTTOutput* MQTTContainer::addOutput(uint8_t pinNumber, const char* relayTopic, PCF8575* pcf8575) {
-    MQTTOutput* newOutput = new MQTTOutput(pinNumber, relayTopic, pcf8575);
+MQTTOutput* MQTTContainer::addOutput(uint8_t pinNumber, const char* outputTopic, PCF8575* pcf8575) {
+    MQTTOutput* newOutput = new MQTTOutput(pinNumber, outputTopic, pcf8575);
 
     // Add the new relay to the end of the basic relay list.
     outputList.push_back(newOutput);
@@ -47,26 +47,12 @@ MQTTOutput* MQTTContainer::addOutput(uint8_t pinNumber, const char* relayTopic, 
     return newOutput;
 }
 
-// MQTTOutput* MQTTContainer::addOutput(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic) {
-//     return this->addOutput(pinNumber, relayOperateTopic, relayReleaseTopic, (PCF8575*)NULL);
-// }
-
-// MQTTOutput* MQTTContainer::addOutput(uint8_t pinNumber, const char* relayOperateTopic, const char* relayReleaseTopic, PCF8575* pcf8575) {
-//     MQTTOutput* newRelay = new MQTTOutput(pinNumber, relayOperateTopic, relayReleaseTopic, pcf8575);
-
-//     // Add the new relay to the end of the advanced relay list.
-//     relayAdvancedList.push_back(newRelay);
-
-//     // Return the pointer to the new advanced relay.
-//     return newRelay;
-// }
-
-MQTTInput* MQTTContainer::addInput(uint8_t pinNumber, const char* sensorTopic) {
-    return this->addInput(pinNumber, sensorTopic, (PCF8575*)NULL);
+MQTTInput* MQTTContainer::addInput(uint8_t pinNumber, const char* inputTopic) {
+    return this->addInput(pinNumber, inputTopic, (PCF8575*)NULL);
 }
 
-MQTTInput* MQTTContainer::addInput(uint8_t pinNumber, const char* sensorTopic, PCF8575* pcf8575) {
-    MQTTInput* newInput = new MQTTInput(pinNumber, sensorTopic, pcf8575);
+MQTTInput* MQTTContainer::addInput(uint8_t pinNumber, const char* inputTopic, PCF8575* pcf8575) {
+    MQTTInput* newInput = new MQTTInput(pinNumber, inputTopic, pcf8575);
 
     // Add the new sensor to the end of the sensor list.
     inputList.push_back(newInput);
@@ -85,7 +71,6 @@ void MQTTContainer::loop() {
         this->buildIndexWebPage();
         this->buildServosWebPage();
         this->buildOutputsWebPage();
-        // this->buildAdvancedRelaysWebPage();
         this->buildInputsWebPage();
 
         // Set the callback function for websocket events from the client.
@@ -182,21 +167,12 @@ void MQTTContainer::connectToMQTT() {
                 Serial.printf("Servo subscribed to topic: %s\n", servo->getTurnoutTopic());
             }
 
-            // All basic relays to subscribe to their relay topic.
+            // All outputs to subscribe to their topic.
             for (MQTTOutput* output : outputList) {
-                mqttClient.subscribe(output->getRelayTopic());
+                mqttClient.subscribe(output->getOutputTopic());
 
-                Serial.printf("Basic relay subscribed to topic: %s\n", output->getRelayTopic());
+                Serial.printf("Output subscribed to topic: %s\n", output->getOutputTopic());
             }
-
-            // // All advanced relays to subscribe to their relay operate topic and relay release topic.
-            // for (MQTTOutput* relay : relayAdvancedList) {
-            //     mqttClient.subscribe(relay->getRelayOperateTopic());
-            //     mqttClient.subscribe(relay->getRelayReleaseTopic());
-
-            //     Serial.printf("Advanced relay subscribed to operate topic: %s\n", relay->getRelayOperateTopic());
-            //     Serial.printf("Advanced relay subscribed to release topic: %s\n", relay->getRelayReleaseTopic());
-            // }
 
             // Set the callback which will be used for all servos and relays.
             mqttClient.setCallback(std::bind(&MQTTContainer::callback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
@@ -241,7 +217,7 @@ void MQTTContainer::callback(char* topic, byte* payload, unsigned int length) {
 
     // Using the topic of the received messaage, determine which output this message is for.
     for (MQTTOutput* output : outputList) {
-        if (strcmp(topic, output->getRelayTopic()) == 0) {
+        if (strcmp(topic, output->getOutputTopic()) == 0) {
             output->messageReceived(charPayload);
         }
     }
@@ -417,7 +393,7 @@ void MQTTContainer::buildOutputsWebPage() {
 		outputsWebPage += output->getPinString();
         outputsWebPage += "</td>";
         outputsWebPage += "<td>";
-		outputsWebPage += String(output->getRelayTopic());
+		outputsWebPage += String(output->getOutputTopic());
         outputsWebPage += "</td>";
         outputsWebPage += "<td><div id='s";
         //basicRelaysWebPage += relay->getPinString();
@@ -508,7 +484,7 @@ void MQTTContainer::buildInputsWebPage() {
 		inputsWebPage += input->getPinString();
         inputsWebPage += "</td>";
         inputsWebPage += "<td>";
-		inputsWebPage += String(input->getSensorTopic());
+		inputsWebPage += String(input->getInputTopic());
         inputsWebPage += "</td>";
         inputsWebPage += "<td><div id='s";
         // inputsWebPage += sensor->getPinString();
@@ -593,7 +569,7 @@ String MQTTContainer::getBasicRelaysJSON() {
        retValue += "{\"Pin\": \"";
        retValue += output->getPinNumber();
        retValue += "\", \"Topic\": \"";
-       retValue += output->getRelayTopic();
+       retValue += output->getOutputTopic();
        retValue += "\"},\n";
 	}
 
@@ -629,7 +605,7 @@ String MQTTContainer::getSensorsJSON() {
        retValue += "{\"Pin\": \"";
        retValue += input->getPinNumber();
        retValue += "\", \"Topic\": \"";
-       retValue += input->getSensorTopic();
+       retValue += input->getInputTopic();
        retValue += "\"},\n";
 	}
 
