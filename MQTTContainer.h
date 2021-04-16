@@ -16,10 +16,10 @@ class MQTTContainer {
         MQTTServo* addServo(uint8_t pinNumber, const char* servoTopic, Adafruit_PWMServoDriver* pwm);
 
         MQTTOutput* addOutput(uint8_t pinNumber, const char* outputTopic);
-        MQTTOutput* addOutput(uint8_t pinNumber, const char* outputTopic, PCF8575* pcf8575);
+        MQTTOutput* addOutput(uint8_t pinNumber, const char* outputTopic, Adafruit_MCP23017* mcp);
 
         MQTTInput* addInput(uint8_t pinNumber, const char* inputTopic);
-        MQTTInput* addInput(uint8_t pinNumber, const char* inputTopic, PCF8575* pcf8575);
+        MQTTInput* addInput(uint8_t pinNumber, const char* inputTopic, Adafruit_MCP23017* mcp);
 
 
         void loop();
@@ -53,9 +53,8 @@ class MQTTContainer {
         void callback(char* topic, byte* payload, unsigned int length);
         String replaceAll(String s);
         String getServosJSON();
-        String getBasicRelaysJSON();
-        String getAdvancedRelaysJSON();
-        String getSensorsJSON();
+        String getOutputsJSON();
+        String getInputsJSON();
 
         void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length);
         // MQTTServo* determineServo(uint8_t *payload);

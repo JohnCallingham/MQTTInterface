@@ -34,11 +34,11 @@ MQTTServo* MQTTContainer::addServo(uint8_t pinNumber, const char* servoTopic, Ad
 }
 
 MQTTOutput* MQTTContainer::addOutput(uint8_t pinNumber, const char* outputTopic) {
-    return this->addOutput(pinNumber, outputTopic, (PCF8575*)NULL);
+    return this->addOutput(pinNumber, outputTopic, (Adafruit_MCP23017*)NULL);
 }
 
-MQTTOutput* MQTTContainer::addOutput(uint8_t pinNumber, const char* outputTopic, PCF8575* pcf8575) {
-    MQTTOutput* newOutput = new MQTTOutput(pinNumber, outputTopic, pcf8575);
+MQTTOutput* MQTTContainer::addOutput(uint8_t pinNumber, const char* outputTopic, Adafruit_MCP23017* mcp) {
+    MQTTOutput* newOutput = new MQTTOutput(pinNumber, outputTopic, mcp);
 
     // Add the new relay to the end of the basic relay list.
     outputList.push_back(newOutput);
@@ -48,11 +48,11 @@ MQTTOutput* MQTTContainer::addOutput(uint8_t pinNumber, const char* outputTopic,
 }
 
 MQTTInput* MQTTContainer::addInput(uint8_t pinNumber, const char* inputTopic) {
-    return this->addInput(pinNumber, inputTopic, (PCF8575*)NULL);
+    return this->addInput(pinNumber, inputTopic, (Adafruit_MCP23017*)NULL);
 }
 
-MQTTInput* MQTTContainer::addInput(uint8_t pinNumber, const char* inputTopic, PCF8575* pcf8575) {
-    MQTTInput* newInput = new MQTTInput(pinNumber, inputTopic, pcf8575);
+MQTTInput* MQTTContainer::addInput(uint8_t pinNumber, const char* inputTopic, Adafruit_MCP23017* mcp) {
+    MQTTInput* newInput = new MQTTInput(pinNumber, inputTopic, mcp);
 
     // Add the new sensor to the end of the sensor list.
     inputList.push_back(newInput);
@@ -85,19 +85,11 @@ void MQTTContainer::loop() {
     // Update the MQTT client. This is needed to prevent the connection from dropping.
     mqttClient.loop();
     
-    // Iterate over all pointer to MQTTSensor objects in the sensor list calling their loop() method.
+    // Iterate over all MQTTServo and MQTTInput objects in the servo list calling their loop() method.
     // Using a range-based for loop.
     for (MQTTServo* servo : servoList) {
 		servo->loop();
 	}
-
-    // for (MQTTOutput* relay : relayBasicList) {
-    //     relay->loop(); // REQUIRED???
-    // }
-
-    // for (MQTTOutput* relay : relayAdvancedList) {
-    //     relay->loop(); // REQUIRED???
-    // }
 
     for (MQTTInput* input : inputList) {
         input->loop();
@@ -107,7 +99,7 @@ void MQTTContainer::loop() {
 
     // Check to see if a new client has connected to the web socket.
     // If one has, then update the sensor state values in the browser.
-    this ->handleNewWebSocketClient();
+    this->handleNewWebSocketClient();
 }
 
 void MQTTContainer::handleNewWebSocketClient() {
@@ -127,11 +119,6 @@ void MQTTContainer::handleNewWebSocketClient() {
        for (MQTTOutput* output : this->outputList) {
            output->updateWebPage();
        }
-
-    //    // Update the web page with the current state of all advanced relays.
-    //    for (MQTTOutput* relay : this->relayAdvancedList) {
-    //        relay->updateWebPage();
-    //    }
 
        // Update the web page with the current state of all sensors.
        for (MQTTInput* input : this->inputList) {
@@ -511,14 +498,11 @@ void MQTTContainer::publishStartupMessage() {
             "Servos": [
                 %SERVOS%
             ],
-            "Basic Relays": [
-                %BASIC_RELAYS%
+            "Outputs": [
+                %OUTPUTS%
             ],
-            "Advanced Relays": [
-                %ADVANCED_RELAYS%
-            ],
-            "Sensors": [
-                %SENSORS%
+            "Inputs": [
+                %INPUTS%
             ]
         }
         )rawliteral";
@@ -539,9 +523,8 @@ String MQTTContainer::replaceAll(String s) {
     s.replace("%ID%", chipID);
     s.replace("%IP%", WiFi.localIP().toString());
     s.replace("%SERVOS%",  getServosJSON());
-    s.replace("%BASIC_RELAYS%", getBasicRelaysJSON());
-    // s.replace("%ADVANCED_RELAYS%", getAdvancedRelaysJSON());
-    s.replace("%SENSORS%", getSensorsJSON());
+    s.replace("%OUTPUTS%", getOutputsJSON());
+    s.replace("%INPUTS%", getInputsJSON());
     return s;
 }
 
@@ -562,7 +545,7 @@ String MQTTContainer::getServosJSON() {
     return retValue;
 }
 
-String MQTTContainer::getBasicRelaysJSON() {
+String MQTTContainer::getOutputsJSON() {
     String retValue = "";
 
     for (MQTTOutput* output : outputList) {
@@ -579,26 +562,7 @@ String MQTTContainer::getBasicRelaysJSON() {
     return retValue;
 }
 
-// String MQTTContainer::getAdvancedRelaysJSON() {
-//     String retValue = "";
-
-//     for (MQTTOutput* relay : relayAdvancedList) {
-//        retValue += "{\"Pin\": \"";
-//        retValue += relay->getPinNumber();
-//        retValue += "\", \"Operate topic\": \"";
-//        retValue += relay->getRelayOperateTopic();
-//        retValue += "\", \"Release topic\": \"";
-//        retValue += relay->getRelayReleaseTopic();
-//        retValue += "\"},\n";
-// 	}
-
-//     // Remove last ",".
-//     retValue = retValue.substring(0, retValue.length() - 2);
-
-//     return retValue;
-// }
-
-String MQTTContainer::getSensorsJSON() {
+String MQTTContainer::getInputsJSON() {
     String retValue = "";
 
     for (MQTTInput* input : inputList) {
@@ -616,6 +580,7 @@ String MQTTContainer::getSensorsJSON() {
 }
 
 void MQTTContainer::webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
+    // This is the web socket callback function.
     // payload[0] = command. payload[1] = N or X. payload[2-3] = port (00-99). payload[4-] = message.
     char pinString[4];
 
@@ -635,7 +600,7 @@ void MQTTContainer::webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         switch (payload[0]) {
             case 'r':
                 // The angle slider has been moved.
-                Serial.printf("Angle changed for servo pin %s, %i\n", servo->getPinString(), angle);
+                //Serial.printf("Angle changed for servo pin %s, %i\n", servo->getPinString(), angle);
 
                 // Move the servo when the user moves the slider.
                 servo->updatePin(angle);

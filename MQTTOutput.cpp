@@ -7,13 +7,13 @@ INACTIVE or OFF turns the output off.
 
 extern WebSocketsServer webSocket;
 
-MQTTOutput::MQTTOutput(uint8_t pinNumber, const char* outputTopic, PCF8575* pcf8575) {
+MQTTOutput::MQTTOutput(uint8_t pinNumber, const char* outputTopic, Adafruit_MCP23017* mcp) {
     // Store the parameters.
     this->pinNumber = pinNumber;
     this->outputTopic = outputTopic;
-    this->pcf8575 = pcf8575;
+    this->mcp = mcp;
 
-    if (this->pcf8575 == NULL) {
+    if (this->mcp == NULL) {
         sprintf(this->pinString, "N%02i", this->pinNumber);
         sprintf(this->pinID, "N%02i", this->pinNumber);
     } else {
@@ -33,14 +33,12 @@ void MQTTOutput::messageReceived(char* payload) {
     // If payload == "INACTIVE" or "OFF", release relay.
     if ((strcmp(payload, "ACTIVE") == 0) || (strcmp(payload, "ON")) == 0) {
         Serial.printf("Output on pin %i on\n", this->pinNumber);
-        // digitalWrite(this->pinNumber, LOW);
         updatePin(LOW);
         strcpy (this->currentState, "On");
         updateWebPage();
     }
     if ((strcmp(payload, "INACTIVE") == 0) || (strcmp(payload, "OFF")) == 0) {
         Serial.printf("Output on pin %i off\n", this->pinNumber);
-        // digitalWrite(this->pinNumber, HIGH);
         updatePin(HIGH);
         strcpy (this->currentState, "Off");
         updateWebPage();
@@ -59,7 +57,7 @@ void MQTTOutput::updateWebPage() {
 }
 
 void MQTTOutput::configurePin() {
-    if (pcf8575 == NULL) {
+    if (mcp == NULL) {
         // Using the native pins on the 8266.
         pinMode(this->pinNumber, OUTPUT);
     } else {
@@ -69,7 +67,7 @@ void MQTTOutput::configurePin() {
 }
 
 void MQTTOutput::updatePin(uint8_t newValue) {
-    if (pcf8575 == NULL) {
+    if (mcp == NULL) {
         // Using the native pins on the 8266.
         digitalWrite(this->pinNumber, newValue);
     } else {

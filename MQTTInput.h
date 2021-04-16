@@ -3,17 +3,18 @@
 
 #include <PubSubClient.h>
 #include <WebSocketsServer.h>
-#include <PCF8575.h>
+//#include <PCF8575.h>
+#include <Wire.h>
+#include "Adafruit_MCP23017.h"
 
 class MQTTInput {
 
     public:
-        MQTTInput(uint8_t pinNumber, const char* inputTopic, PCF8575* pcf8575);
+        MQTTInput(uint8_t pinNumber, const char* inputTopic, Adafruit_MCP23017* mcp);
 
         void loop();
 
         void setDebounceDelay_mS(unsigned long debounceDelay_mS) {this->debounceDelay_mS = debounceDelay_mS;}
-        //void setInputType(inputTypeEnum inputType) {this->inputType = inputType;}
         void setActiveMessage(const char* activeMessage) {this->activeMessage = activeMessage;}
         void setInactiveMessage(const char* inactiveMessage) {this->inactiveMessage = inactiveMessage;}
 
@@ -24,13 +25,12 @@ class MQTTInput {
 
         void updateWebPage();
 
-        void publishMQTTSensor();
         
     private:
         uint8_t pinNumber;
         char pinString[10];
         char pinID[10];
-        PCF8575* pcf8575 = NULL; // NULL means use the GPIO pins on the 8266. If non NULL, then points to the object to read the pins.
+        Adafruit_MCP23017* mcp = NULL; // NULL means use the GPIO pins on the 8266. If non NULL, then points to the object to read the pins.
         const char* inputTopic;
         const char* activeMessage = "ACTIVE"; // If set will override the 'ACTIVE' message.
         const char* inactiveMessage = "INACTIVE"; // If set will override the 'INACTIVE' message.
@@ -41,6 +41,8 @@ class MQTTInput {
         int currentState;
         int lastState;
         unsigned long lastTime;
+
+        void publishMQTTInput();
 
         void configurePin();
         int getPin();

@@ -5,13 +5,13 @@
 extern WebSocketsServer webSocket;
 extern PubSubClient mqttClient;
 
-MQTTInput::MQTTInput(uint8_t pinNumber, const char* inputTopic, PCF8575* pcf8575) {
+MQTTInput::MQTTInput(uint8_t pinNumber, const char* inputTopic, Adafruit_MCP23017* mcp) {
     // Store the parameters.
     this->pinNumber = pinNumber;
     this->inputTopic = inputTopic;
-    this->pcf8575 = pcf8575;
+    this->mcp = mcp;
 
-    if (this->pcf8575 == NULL) {
+    if (this->mcp == NULL) {
         sprintf(this->pinString, "N%02i", this->pinNumber);
         sprintf(this->pinID, "N%02i", this->pinNumber);
     } else {
@@ -51,27 +51,25 @@ void MQTTInput::readPin() {
             this->currentState = readState;
 
             // Publish the change to the MQTT broker.
-            publishMQTTSensor();
+            publishMQTTInput();
         }
     }
 
     this->lastState = readState;
 }
 
-void MQTTInput::publishMQTTSensor() {
+void MQTTInput::publishMQTTInput() {
     char payload[10];
 
     if (this->currentState == HIGH) {
-        // Use the default message if inactiveMessage is not set.
-        // strcpy(payload, "INACTIVE");
+        // Publish the default inactive message of "INACTIVE" unless an alternative has been supplied.
         strcpy(payload, this->inactiveMessage);
     } else {
-        // Use the default message if activeMessage is not set.
-        // strcpy(payload, "ACTIVE");
+        // Publish the default active message of "ACTIVE" unless an alternative has been supplied.
         strcpy(payload, this->activeMessage);
     }
 
-    // Publish the payload to the sensor topic. Retained is set to False.
+    // Publish the payload to the input topic. Retained is set to False.
     // If this input is connected to a button which positions a turnout, then there will not be an inactive mesasge.
     if (strlen(payload) > 0) {
         mqttClient.publish(this->inputTopic, payload, false);
@@ -98,24 +96,22 @@ void MQTTInput::updateWebPage() {
 }
 
 void MQTTInput::configurePin() {
-    if (pcf8575 == NULL) {
+    if (mcp == NULL) {
         // Using the native pins on the 8266.
         pinMode(this->pinNumber, INPUT_PULLUP);
     } else {
         // Using the I/O expander.
-        pcf8575->pinMode(this->pinNumber, INPUT);
+        mcp->pinMode(this->pinNumber, INPUT);  //crashes here !!! need to call mcp->begin() first !!!
+        mcp->pullUp(this->pinNumber, HIGH);  // turn on a 100K pullup internally
     }
 }
 
 int MQTTInput::getPin() {
-    if (pcf8575 == NULL) {
+    if (mcp == NULL) {
         // Using the native pins on the 8266.
         return digitalRead(this->pinNumber);
     } else {
         // Using the I/O expander.
-        //return pcf8575->digitalRead(pinNumber); // or use digitalInput() ??? causing repeated output of 0 to the serial port
-
-        return 0; //keep the compiler happy for now!
-        
+        return mcp->digitalRead(this->pinNumber);
     }
 }

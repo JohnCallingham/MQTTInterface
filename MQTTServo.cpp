@@ -311,6 +311,7 @@ void MQTTServo::calculatePeriods() {
 
     // Calculates how often to move the servo to achieve a complete transition from one state to another in timeFrom..._mS.
     // Accomodates either the thrown or closed angle being the largest.
+    // Also calculates the mid point angle.
     if (this->angleClosed == this->angleThrown) {
         movePeriodToClosed_mS = timeFromThrownToClosed_mS / 50; // TO DO sort a more sensible value.
         movePeriodToThrown_mS = timeFromClosedToThrown_mS / 50; // TO DO still goes to 180 when setting both T and C !!!
@@ -329,7 +330,7 @@ void MQTTServo::calculatePeriods() {
 
 void MQTTServo::publishMQTTSensor(const char* topic, const char* payload) {
     // Do not publish if the topic is empty.
-    if (strlen(topic) != 0) {
+    if (strlen(topic) > 0) {
         // Publish the payload to the sensor topic. Retained is set to False.
         mqttClient.publish(topic, payload, false);
 
