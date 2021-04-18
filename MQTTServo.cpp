@@ -344,23 +344,18 @@ void MQTTServo::configurePin() {
         pinMode(this->pinNumber, OUTPUT);
     } else {
         // Using the I/O expander.
-
     }
 }
 
 void MQTTServo::updatePin(uint8_t newValue) {
     if (this->pwm == NULL) {
         // Using the native pins on the 8266.
-        // This has not been impelmented.
+        // This has not been implemented.
     } else {
         // Using the I/O expander.
 
-        // Convert angle to off position out of 4096.
-        // 0 degrees is 110. 180 degrees is 500.
-
-        //val = map(val, 0, 180, 110, 500);
+        // Convert angle to off position out of 4096 counts. On position always happens at 0 count.
+        // 0 degrees (1 mS) is 110. 180 degrees (2 mS) is 500.
         this->pwm->setPWM(this->pinNumber, 0, map(newValue, 0, 180, 110, 500));
-
-        
     }
 }

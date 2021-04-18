@@ -14,13 +14,8 @@ MQTTContainer::MQTTContainer() {
     this->server.on ("/", [&]() {this->server.send(200, "text/html", this->indexWebPage);});
     this->server.on ("/servos", [&]() {this->server.send(200, "text/html", this->servosWebPage);});
     this->server.on ("/outputs", [&]() {this->server.send(200, "text/html", this->outputsWebPage);});
-    // this->server.on ("/advancedRelays", [&]() {this->server.send(200, "text/html", this->advancedRelaysWebPage);});
     this->server.on ("/inputs", [&]() {this->server.send(200, "text/html", this->inputsWebPage);});
     this->server.begin();
-}
-
-MQTTServo* MQTTContainer::addServo(uint8_t pinNumber, const char* servoTopic) {
-    return this->addServo(pinNumber, servoTopic, (Adafruit_PWMServoDriver*)NULL);
 }
 
 MQTTServo* MQTTContainer::addServo(uint8_t pinNumber, const char* servoTopic, Adafruit_PWMServoDriver* pwm) {
@@ -40,10 +35,10 @@ MQTTOutput* MQTTContainer::addOutput(uint8_t pinNumber, const char* outputTopic)
 MQTTOutput* MQTTContainer::addOutput(uint8_t pinNumber, const char* outputTopic, Adafruit_MCP23017* mcp) {
     MQTTOutput* newOutput = new MQTTOutput(pinNumber, outputTopic, mcp);
 
-    // Add the new relay to the end of the basic relay list.
+    // Add the new relay to the end of the output list.
     outputList.push_back(newOutput);
 
-    // Return the pointer to the new basic relay.
+    // Return the pointer to the output.
     return newOutput;
 }
 
@@ -54,11 +49,21 @@ MQTTInput* MQTTContainer::addInput(uint8_t pinNumber, const char* inputTopic) {
 MQTTInput* MQTTContainer::addInput(uint8_t pinNumber, const char* inputTopic, Adafruit_MCP23017* mcp) {
     MQTTInput* newInput = new MQTTInput(pinNumber, inputTopic, mcp);
 
-    // Add the new sensor to the end of the sensor list.
+    // Add the new sensor to the end of the input list.
     inputList.push_back(newInput);
 
-    // Return the pointer to the new sensor.
+    // Return the pointer to the new input.
     return newInput;
+}
+
+MQTT_RGB_LED* MQTTContainer::addRGB_LED(RGB_LED_Controller* rgb, uint8_t ledNumber, const char* ledTopic) {
+    MQTT_RGB_LED* newRGB_LED = new MQTT_RGB_LED(rgb, ledNumber, ledTopic);
+
+    // Add the new sensor to the end of the RGB LED list.
+    rgbLEDList.push_back(newRGB_LED);
+
+    // Return the pointer to the new RGB LED.
+    return newRGB_LED;
 }
 
 void MQTTContainer::loop() {
@@ -85,14 +90,16 @@ void MQTTContainer::loop() {
     // Update the MQTT client. This is needed to prevent the connection from dropping.
     mqttClient.loop();
     
-    // Iterate over all MQTTServo and MQTTInput objects in the servo list calling their loop() method.
+    // Iterate over all MQTTServo, MQTTInput and MQTT_RGB_LED objects in their lists calling their loop() method.
     // Using a range-based for loop.
     for (MQTTServo* servo : servoList) {
 		servo->loop();
 	}
-
     for (MQTTInput* input : inputList) {
         input->loop();
+    }
+    for (MQTT_RGB_LED* rgbLED : rgbLEDList) {
+        rgbLED->loop(); //required???
     }
 
     server.handleClient();
@@ -161,6 +168,13 @@ void MQTTContainer::connectToMQTT() {
                 Serial.printf("Output subscribed to topic: %s\n", output->getOutputTopic());
             }
 
+            // All RGB LEDs to subscribe to their topic.
+            for (MQTT_RGB_LED* rgbLED : rgbLEDList) {
+                mqttClient.subscribe(rgbLED->getRGB_LED_Topic());
+
+                Serial.printf("RGB LED subscribed to topic: %s\n", rgbLED->getRGB_LED_Topic());
+            }
+
             // Set the callback which will be used for all servos and relays.
             mqttClient.setCallback(std::bind(&MQTTContainer::callback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
@@ -195,17 +209,24 @@ void MQTTContainer::callback(char* topic, byte* payload, unsigned int length) {
         message = MQTTServo::receivedMessageEnum::messageClosed;
     }
 
-    // Using the topic of the received message, determine which servo this message is for.
+    // Using the topic of the received message, determine if this message is for a servo object.
     for (MQTTServo* servo : servoList) {
         if (strcmp(topic, servo->getTurnoutTopic()) == 0) {
             servo->messageReceived(message);
         }
     }
 
-    // Using the topic of the received messaage, determine which output this message is for.
+    // Using the topic of the received message, determine if this message is for an output object.
     for (MQTTOutput* output : outputList) {
         if (strcmp(topic, output->getOutputTopic()) == 0) {
             output->messageReceived(charPayload);
+        }
+    }
+
+    // Using the topic of the received message, determine if this message is for an RGB LED object.
+    for (MQTT_RGB_LED* rgbLED : rgbLEDList) {
+        if (strcmp(topic, rgbLED->getRGB_LED_Topic()) == 0) {
+            rgbLED->messageReceived(charPayload);
         }
     }
 }

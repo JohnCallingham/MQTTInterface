@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <MQTTInput.h>
-//#include <ESP8266WiFi.h>
 
 extern WebSocketsServer webSocket;
 extern PubSubClient mqttClient;
@@ -85,10 +84,8 @@ void MQTTInput::updateWebPage() {
     char str[10];
 
     if (this->currentState == HIGH) {
-        // sprintf(str,"s%s%s",this->pinString, "Inactive");
         sprintf(str,"s%s%s",this->pinID, "Inactive");
     } else {
-        // sprintf(str,"s%s%s",this->pinString, "Active");
         sprintf(str,"s%s%s",this->pinID, "Active");
     }
 

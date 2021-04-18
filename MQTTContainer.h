@@ -4,6 +4,9 @@
 #include <MQTTServo.h>
 #include <MQTTOutput.h>
 #include <MQTTInput.h>
+#include <MQTT_RGB_LED.h>
+#include <RGB_LED_Controller.h>
+//#include <FastLED.h>
 #include <ESP8266WebServer.h>
 #include <list>
 
@@ -12,7 +15,7 @@ class MQTTContainer {
     public:
         MQTTContainer();
         
-        MQTTServo* addServo(uint8_t pinNumber, const char* servoTopic);
+        // MQTTServo* addServo(uint8_t pinNumber, const char* servoTopic); // Servos only connected to the PWM expander.
         MQTTServo* addServo(uint8_t pinNumber, const char* servoTopic, Adafruit_PWMServoDriver* pwm);
 
         MQTTOutput* addOutput(uint8_t pinNumber, const char* outputTopic);
@@ -21,6 +24,7 @@ class MQTTContainer {
         MQTTInput* addInput(uint8_t pinNumber, const char* inputTopic);
         MQTTInput* addInput(uint8_t pinNumber, const char* inputTopic, Adafruit_MCP23017* mcp);
 
+        MQTT_RGB_LED* addRGB_LED(RGB_LED_Controller* rgb, uint8_t ledNumber, const char* ledTopic);
 
         void loop();
 
@@ -32,6 +36,7 @@ class MQTTContainer {
         std::list<MQTTServo*> servoList;
         std::list<MQTTOutput*> outputList;
         std::list<MQTTInput*> inputList;
+        std::list<MQTT_RGB_LED*> rgbLEDList;
 
         const char* mqttBroker = "raspberrypi";
         uint16_t mqttPort = 1883;
