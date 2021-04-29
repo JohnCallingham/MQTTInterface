@@ -7,20 +7,58 @@ MQTT_RGB_LED::MQTT_RGB_LED(RGB_LED_Controller* rgb, uint8_t ledNumber, const cha
 }
 
 void MQTT_RGB_LED::loop() {
+    // If timeToTurnLEDOff and timeToTurnLEDOn are both zero (the default) there is no blinking.
 
-// is this required????
-    
+    // how to ensure that receiving an ON mesasge starts the blinking and receiving an OFF message stops the blinking?
+
+    // Need a bool blink flag?
+
+    if (blinking) {
+        if (this->rgb->leds[this->ledNumber] == this->onColour) { // Assumes that the on colour is different to the off colour!!
+            // The LED is on.
+            if ((timeToTurnLEDOff != 0) && (millis() >= timeToTurnLEDOff)) {
+                turnLEDOff();
+                timeToTurnLEDOn = millis() + offTime_mS;
+            }
+        } else {
+            // The LED is off.
+            if ((timeToTurnLEDOn != 0) && (millis() >= timeToTurnLEDOn)) {
+                turnLEDOn();
+                timeToTurnLEDOff = millis() + onTime_mS;
+            }
+        }
+    }
 }
 
 void MQTT_RGB_LED::messageReceived(char* payload) {
     if (strcmp(payload, "ON") == 0) {
-        Serial.printf("LED number %i turned on 0x%08X\n", this->ledNumber, this->onColour);
-        this->rgb->leds[this->ledNumber] = this->onColour;
-        FastLED.show();
+        // Check whether this LED is set to blink.
+        if ((this->onTime_mS > 0) || (this->offTime_mS > 0)) {
+            blinking = true;
+        } else {
+            blinking = false;
+            Serial.printf("LED number %i turned on 0x%02Xx%02Xx%02X\n", this->ledNumber, this->onColour.raw[0], this->onColour.raw[1], this->onColour.raw[2]);
+            // this->rgb->leds[this->ledNumber] = this->onColour;
+            // FastLED.show();
+            turnLEDOn();
+        }
     }
+
     if (strcmp(payload, "OFF") == 0) {
-        Serial.printf("LED number %i turned off 0x%08X\n", this->ledNumber, this->offColour);
-        this->rgb->leds[this->ledNumber] = this->offColour;
-        FastLED.show();
+        blinking = false;
+        Serial.printf("LED number %i turned off 0x%02Xx%02Xx%02X\n", this->ledNumber, this->onColour.raw[0], this->onColour.raw[1], this->onColour.raw[2]);
+        // this->rgb->leds[this->ledNumber] = this->offColour;
+        // FastLED.show();
+        turnLEDOff();
     }
+}
+
+void MQTT_RGB_LED::turnLEDOn() {
+    this->rgb->leds[this->ledNumber] = this->onColour;
+    FastLED.show();
+}
+
+void MQTT_RGB_LED::turnLEDOff() {
+    this->rgb->leds[this->ledNumber] = this->offColour;
+    FastLED.show();
 }

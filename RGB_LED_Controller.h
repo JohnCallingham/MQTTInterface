@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <FastLED.h>
 
-#define NUM_LEDS 100
+#define NUM_LEDS 1
 #define DATA_PIN 13
 
 class RGB_LED_Controller {
@@ -18,13 +18,7 @@ class RGB_LED_Controller {
         // https://forum.arduino.cc/t/fastled-change-led-number-at-run-time/674819/23
         CRGB leds[NUM_LEDS]; // The array of LEDs.
 
-
-
     private:
-
-
-
-
 
 };
 

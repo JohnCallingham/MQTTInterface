@@ -19,6 +19,9 @@ MQTTContainer::MQTTContainer() {
 }
 
 MQTTServo* MQTTContainer::addServo(uint8_t pinNumber, const char* servoTopic, Adafruit_PWMServoDriver* pwm) {
+    // Check that this pin number has not already been used.
+    if (servoPinAlreadyInUse()) throw std::invalid_argument("Servo already in use");
+
     MQTTServo* newServo = new MQTTServo(pinNumber, servoTopic, pwm);
 
     // Add the new servo to the end of the servo list.
@@ -89,6 +92,9 @@ void MQTTContainer::loop() {
 
     // Update the MQTT client. This is needed to prevent the connection from dropping.
     mqttClient.loop();
+
+    // If the MQTT connection is lost then attempt to re-establish it.
+    if (!mqttClient.connected()) connectToMQTT();
     
     // Iterate over all MQTTServo, MQTTInput and MQTT_RGB_LED objects in their lists calling their loop() method.
     // Using a range-based for loop.
@@ -854,4 +860,8 @@ String MQTTContainer::getRepeatingText() {
 	}
 
     return s;
+}
+
+bool MQTTContainer::servoPinAlreadyInUse() {
+return false;
 }
