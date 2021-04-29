@@ -7,11 +7,10 @@ MQTT_RGB_LED::MQTT_RGB_LED(RGB_LED_Controller* rgb, uint8_t ledNumber, const cha
 }
 
 void MQTT_RGB_LED::loop() {
-    // If timeToTurnLEDOff and timeToTurnLEDOn are both zero (the default) there is no blinking.
-
-    // how to ensure that receiving an ON mesasge starts the blinking and receiving an OFF message stops the blinking?
-
-    // Need a bool blink flag?
+    // If this LED has a non zero onTime_mS or offTime_mS then this sets the blinking flag.
+    // When the blinking flag is set an ON message causes the LED to alternatively display the onColour for the onTime_mS
+    //  and then the offColour for the offTime_mS.
+    // When the OFF message is received the offColour will be displayed permanently.
 
     if (blinking) {
         if (this->rgb->leds[this->ledNumber] == this->onColour) { // Assumes that the on colour is different to the off colour!!

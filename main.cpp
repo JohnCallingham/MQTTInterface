@@ -1,7 +1,6 @@
 // https://randomnerdtutorials.com/esp8266-pinout-reference-gpios/
 #include <Arduino.h>
 #include <WiFi.h>
-//#include <ESP8266WiFi.h>
 #include <MQTTServo.h>
 #include <MQTTContainer.h>
 #include <WebSocketsServer.h>
@@ -11,9 +10,6 @@
 #include <Adafruit_MCP23017.h>
 #include <RGB_LED_Controller.h>
 #include <MQTT_RGB_LED.h>
-
-// const char* ssid = "BT-SCAKPC";
-// const char* password = "btvxqTve4aPQkr";
 
 WiFiClient wifiClient;
 PubSubClient mqttClient;
@@ -32,12 +28,6 @@ RGB_LED_Controller* rgb = new RGB_LED_Controller(); // NUM_LEDS and DATA_PIN are
 MQTTContainer container;
 
 
-
-
-
-// // Forward declarations.
-// void connectToWiFi();
-
 void setup() {
   Serial.begin(115200);
 
@@ -51,17 +41,19 @@ void setup() {
 
   container.setStartupTopic("events");
 
-//  try {
+  try {
  
 /***
  * Create the input objects.
  ***/
   // Create a pointer to an MQTTInput object which is connected to GPIO14 of the 8266.
   MQTTInput* input1 = container.addInput(14, "trains/track/sensor/GPIO14");
+  input1->getPinID(); // Keep the compiler happy!
 
   // Create a pointer to an MQTTInput object which is connected to port 8 of the I2C I/O expander.
   MQTTInput* input2 = container.addInput(8, "trains/track/sensor/Port8", mcp);
-
+  input2->getPinID(); // Keep the compiler happy!
+  
   // Create a pointer to an MQTTInput object whose ACTIVE message will be changed to allow a button to be connected to this input.
   // The button will cause the turnout to move to its thrown position.
   MQTTInput* input3 = container.addInput(6, "trains/track/turnout/123", mcp);
@@ -82,6 +74,7 @@ void setup() {
   // Create a pointer to an MQTTOutput object which is connected to an 8266 GPIO pin.
   //  This will actually turn the built in LED on and off for testing.
   MQTTOutput* output1 = container.addOutput(LED_BUILTIN, "trains/track/light/L001");
+  output1->getPinID(); // Keep the compiler happy!
   
   // Create a pointer to an MQTTOutput object which represents an output which is connected to port 14 of the I2C I/O expander.
   //MQTTOutput* output2 = container.addOutput(14, "trains/track/light/L002", mcp);
@@ -104,70 +97,56 @@ void setup() {
  * Create the RGB LED objects.
  ***/
   // Create a pointer to an MQTT_RGB_LED object.
-  // This will control LED number 1 in the string which defaults to White when an "ON" message is received and Black when an "OFF" message is received.
+  // This will control the first LED in the string which defaults to White when an "ON" message is received and Black when an "OFF" message is received.
+  MQTT_RGB_LED* led1_WHITE = container.addRGB_LED(rgb, 0, "trains/track/light/L002");
+  led1_WHITE->setOnTime(500);
+  led1_WHITE->setOffTime(500);
+  
+  // Create a pointer to another MQTT_RGB_LED object.
+  // This will also control the first LED in the string but will cause a different colour to be displayed.
   // The defaults are overridden below.
-  MQTT_RGB_LED* RGB_LED1_RED = container.addRGB_LED(rgb, 1, "trains/track/light/LED1/Red");
-  RGB_LED1_RED->setOnColour(CRGB::Red);
-  RGB_LED1_RED->setOffColour(CRGB::Black);
+  MQTT_RGB_LED* led1_RED = container.addRGB_LED(rgb, 0, "trains/track/light/LED1_Red");
+  led1_RED->setOnColour(CRGB::Red);
+  led1_RED->setOffColour(CRGB::Black);
 
   // Create a pointer to another MQTT_RGB_LED object.
-  // This will also control LED number 1 in the string but will cause a different colour to be displayed.
-  MQTT_RGB_LED* RGB_LED1_GREEN = container.addRGB_LED(rgb, 1, "trains/track/light/LED1/Green");
-  RGB_LED1_GREEN->setOnColour(CRGB::Green);
-  RGB_LED1_GREEN->setOffColour(CRGB::Black);
+  // This will also control the first LED in the string but will cause a different colour to be displayed.
+  MQTT_RGB_LED* led1_GREEN = container.addRGB_LED(rgb, 0, "trains/track/light/LED1_Green");
+  led1_GREEN->setOnColour(CRGB::Green);
+  led1_GREEN->setOffColour(CRGB::Black);
 
   // Create a pointer to another MQTT_RGB_LED object.
-  // This will also control LED number 1 in the string but will cause a different colour to be displayed.
-  MQTT_RGB_LED* RGB_LED1_BLUE = container.addRGB_LED(rgb, 1, "trains/track/light/LED1/Blue");
-  RGB_LED1_BLUE->setOnColour(CRGB::Blue);
-  RGB_LED1_BLUE->setOffColour(CRGB::Black);
-
-
-  // }
-  // catch(const std::exception& e)
-  // {
-  //   //std::cerr << e.what() << '\n';
-  // }
-  
-
+  // This will also control the first LED in the string but will cause a different colour to be displayed.
+  MQTT_RGB_LED* led1_BLUE = container.addRGB_LED(rgb, 0, "trains/track/light/LED1_Blue");
+  led1_BLUE->setOnColour(CRGB::Blue);
+  led1_BLUE->setOffColour(CRGB::Black);
 
   
+  } catch (const std::invalid_argument& e) {
+    //std::cerr << e.what() << '\n';
+    // Configuration error found so blink the builtin LED.
+    Serial.println("Error found");
+
+    pinMode(LED_BUILTIN, OUTPUT);
+    while (true) {
 
 
+  digitalWrite(LED_BUILTIN, LOW); // Turn the LED on (Note that LOW is the voltage level)
+  delay(1000); // Wait for a second
+  digitalWrite(LED_BUILTIN, HIGH); // Turn the LED off by making the voltage HIGH
+  delay(1000); // Wait for two seconds
 
+//above code continually crashing ???
 
+    }
+  }
+
+  // No error so continue with the setup.
   connectToWiFi();
-
   webSocket.begin();
-
-
-
-
-  
 }
 
 void loop() {
   container.loop();
   webSocket.loop();
 }
-
-// void connectToWiFi() {
-//   Serial.print("\n\nConnecting to WiFi ");
-
-//   WiFi.begin(ssid, password);
-  
-//   // Wait for connection
-//   while (WiFi.status() != WL_CONNECTED) {
-//     delay(500);
-//     Serial.print(".");
-//   }
-
-//   Serial.printf("\nConnected to %s\n", ssid);
-//   Serial.printf("IP address: %s\n", WiFi.localIP().toString().c_str());
-
-//   // Added to help if WiFi goes down. https://randomnerdtutorials.com/solved-reconnect-esp8266-nodemcu-to-wifi/
-//   // The problem appears to be the BT Smart Hub 2.
-//   WiFi.setAutoReconnect(true);
-//   WiFi.setSleepMode(WIFI_NONE_SLEEP); // https://github.com/esp8266/Arduino/issues/5083
-
-// }
