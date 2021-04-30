@@ -56,7 +56,7 @@ This will create the default LED which will display white when an ON message is 
 *       MQTT_RGB_LED* led1_RED = container.addRGB_LED(0, "trains/track/light/LED1_Red", rgb);
         led1_RED->setOnColour(CRGB::Red);
         led1_RED->setOffColour(CRGB::Black);
-This will create an LED which will display red when an ON mesasge is received and black when an OFF message is received.
+This will create an LED which will display red when an ON message is received and black when an OFF message is received.
 *       MQTT_RGB_LED* led1_WHITE = container.addRGB_LED(0, "trains/track/light/L002", rgb);
         led1_WHITE->setOnTime(500);
         led1_WHITE->setOffTime(500);
