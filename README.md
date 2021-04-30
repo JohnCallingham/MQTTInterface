@@ -32,7 +32,7 @@ Objects of this class can be added to the container by the use of the container'
 
 There are no methods available for configuration.
 ### MQTTServo
-Objects of this class can be added to the container by the use of the container's addServo() method. The methods to this parameter are;-
+Objects of this class can be added to the container by the use of the container's addServo() method. The parameters to this method are;-
 * pinNumber. This is the port number on the PWM servo driver.
 * servoTopic. This is the MQTT topic to which the servo object subscribes.
 * pwm. This is the PWM servo driver.
@@ -43,3 +43,21 @@ The following methods are available for configuration;-
 * setThrownTopic. If this value is set the software will publish an MQTT message to this topic when the servo reaches the thrown angle.
 * setClosedTopic. If this value is set the software will publish an MQTT message to this topic when the servo reaches the closed angle.
 * setMidPointTopic. If this value is set the software will publish an MQTT message to this topic when the servo reaches the mid point angle.
+
+### MQTT_RGB_LED
+Objects of this class can be added to the container by the user of the container's addRGB_LED() method. The parameters to this method are;-
+* ledNumber. The zero based number of the LED in the string of individually addressable RGB LEDs.
+* ledTopic. This is the MQTT topic to which the RGB LED object subscribes.
+* rgb. This is the RGB LED controller object.
+
+The following are examples of use;-
+*       MQTT_RGB_LED* led1_WHITE = container.addRGB_LED(0, "trains/track/light/LED1", rgb);
+This will create the default LED which will display white when an ON message is received and black when an OFF message is received.
+*       MQTT_RGB_LED* led1_RED = container.addRGB_LED(0, "trains/track/light/LED1_Red", rgb);
+        led1_RED->setOnColour(CRGB::Red);
+        led1_RED->setOffColour(CRGB::Black);
+This will create an LED which will display red when an ON mesasge is received and black when an OFF message is received.
+*       MQTT_RGB_LED* led1_WHITE = container.addRGB_LED(0, "trains/track/light/L002", rgb);
+        led1_WHITE->setOnTime(500);
+        led1_WHITE->setOffTime(500);
+This will create an LED which will blink showing the default on colour (white) for 500mS and then the default off colour (black) for 500mS when an ON message is received. The LED will show black when an OFF message is received.
