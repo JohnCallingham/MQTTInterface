@@ -54,10 +54,12 @@ void MQTT_RGB_LED::messageReceived(char* payload) {
 
 void MQTT_RGB_LED::turnLEDOn() {
     this->rgb->leds[this->ledNumber] = this->onColour;
+    FastLED.setBrightness(this->rgb->getBrightness());
     FastLED.show();
 }
 
 void MQTT_RGB_LED::turnLEDOff() {
     this->rgb->leds[this->ledNumber] = this->offColour;
+    FastLED.setBrightness(this->rgb->getBrightness());
     FastLED.show();
 }

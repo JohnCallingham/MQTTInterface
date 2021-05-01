@@ -59,7 +59,7 @@ MQTTInput* MQTTContainer::addInput(uint8_t pinNumber, const char* inputTopic, Ad
     return newInput;
 }
 
-MQTT_RGB_LED* MQTTContainer::addRGB_LED(RGB_LED_Controller* rgb, uint8_t ledNumber, const char* ledTopic) {
+MQTT_RGB_LED* MQTTContainer::addRGB_LED(uint8_t ledNumber, const char* ledTopic, RGB_LED_Controller* rgb) {
     MQTT_RGB_LED* newRGB_LED = new MQTT_RGB_LED(rgb, ledNumber, ledTopic);
 
     // Add the new sensor to the end of the RGB LED list.
@@ -105,7 +105,7 @@ void MQTTContainer::loop() {
         input->loop();
     }
     for (MQTT_RGB_LED* rgbLED : rgbLEDList) {
-        rgbLED->loop(); //required???
+        rgbLED->loop();
     }
 
     server.handleClient();

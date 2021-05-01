@@ -15,7 +15,6 @@ class MQTTContainer {
     public:
         MQTTContainer();
         
-        // MQTTServo* addServo(uint8_t pinNumber, const char* servoTopic); // Servos only connected to the PWM expander.
         MQTTServo* addServo(uint8_t pinNumber, const char* servoTopic, Adafruit_PWMServoDriver* pwm);
 
         MQTTOutput* addOutput(uint8_t pinNumber, const char* outputTopic);
@@ -24,7 +23,8 @@ class MQTTContainer {
         MQTTInput* addInput(uint8_t pinNumber, const char* inputTopic);
         MQTTInput* addInput(uint8_t pinNumber, const char* inputTopic, Adafruit_MCP23017* mcp);
 
-        MQTT_RGB_LED* addRGB_LED(RGB_LED_Controller* rgb, uint8_t ledNumber, const char* ledTopic);
+        // MQTT_RGB_LED* addRGB_LED(RGB_LED_Controller* rgb, uint8_t ledNumber, const char* ledTopic);
+        MQTT_RGB_LED* addRGB_LED(uint8_t ledNumber, const char* ledTopic, RGB_LED_Controller* rgb);
 
         void loop();
 
@@ -65,6 +65,8 @@ class MQTTContainer {
         // MQTTServo* determineServo(uint8_t *payload);
         // MQTTServo* determineServo(uint8_t pinNumber);
         MQTTServo* determineServo(char* pinString);
+
+        bool servoPinAlreadyInUse();
 
         ESP8266WebServer server;
 

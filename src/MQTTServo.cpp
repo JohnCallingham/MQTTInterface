@@ -47,6 +47,10 @@ void MQTTServo::loop() {
             this->setAngleThrown(mqttEEPROM.getServoAngleThrown(pinNumber));
         }
 
+        // Initialise the servo to 90 degrees.
+        // Then the servo will move to the last (retained) position set by JMRI when it subscribes to its topic.
+        updatePin(90);
+
         initialised = true;
     }
 
@@ -89,7 +93,8 @@ void MQTTServo::messageReceived(receivedMessageEnum message) {
         case stateThrown:
             switch(message) {
                 case messageThrown:
-                    handleStateTransition(stateThrown, "ACTIVE", "INACTIVE", "OFF");
+                    // handleStateTransition(stateThrown, "ACTIVE", "INACTIVE", "OFF");
+                    handleStateTransition(stateMoving_Towards_Thrown, "INACTIVE", "INACTIVE", "OFF");
                     break;
                 case messageClosed:
                     handleStateTransition(stateMoving_Towards_Closed, "INACTIVE", "INACTIVE", "OFF");
@@ -130,7 +135,8 @@ void MQTTServo::messageReceived(receivedMessageEnum message) {
                     handleStateTransition(stateMoving_Towards_Thrown, "INACTIVE", "INACTIVE", "ON");
                     break;
                 case messageClosed:
-                    handleStateTransition(stateClosed, "INACTIVE", "ACTIVE", "ON");
+                    // handleStateTransition(stateClosed, "INACTIVE", "ACTIVE", "ON");
+                    handleStateTransition(stateMoving_Towards_Closed, "INACTIVE", "INACTIVE", "ON");
                     break;
                 case reachedThrown:
                     // Error.
@@ -347,15 +353,15 @@ void MQTTServo::configurePin() {
     }
 }
 
-void MQTTServo::updatePin(uint8_t newValue) {
+void MQTTServo::updatePin(uint8_t newValue_degrees) {
     if (this->pwm == NULL) {
         // Using the native pins on the 8266.
         // This has not been implemented.
     } else {
         // Using the I/O expander.
 
-        // Convert angle to off position out of 4096 counts. On position always happens at 0 count.
+        // Convert newValue_degrees to off position out of 4096 counts. On position always happens at 0 count.
         // 0 degrees (1 mS) is 110. 180 degrees (2 mS) is 500.
-        this->pwm->setPWM(this->pinNumber, 0, map(newValue, 0, 180, 110, 500));
+        this->pwm->setPWM(this->pinNumber, 0, map(newValue_degrees, 0, 180, 110, 500));
     }
 }
