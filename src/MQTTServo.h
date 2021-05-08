@@ -75,7 +75,8 @@ class MQTTServo {
         void adjustServoPosition();
         void adjustMovingTowardsClosed();
         void adjustMovingTowardsThrown();
-        void publishMQTTSensor(const char* topic, const char* payload);
+        // void publishMQTTSensor(const char* topic, const char* payload);
+        void publishToMQTT(const char* topic, const char* payload);
 
         void configurePin();
 };

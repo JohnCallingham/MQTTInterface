@@ -87,6 +87,8 @@ void setup() {
  ***/
   // Create a pointer to an MQTTServo object which is connected port 0 of the I2C PWM expander.
   MQTTServo* servo1 = container.addServo(0, "trains/track/turnout/123", pwm);
+  servo1->setTimeFromClosedToThrown_mS(2000);
+  servo1->setTimeFromThrownToClosed_mS(2000);
   servo1->setClosedTopic("trains/track/sensor/456");
   servo1->setThrownTopic("trains/track/sensor/789");
   servo1->setMidPointTopic("trains/track/light/L001");

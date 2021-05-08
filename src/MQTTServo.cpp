@@ -76,10 +76,10 @@ void MQTTServo::messageReceived(receivedMessageEnum message) {
 
             switch(message) {
                 case messageThrown:
-                    handleStateTransition(stateMoving_Towards_Thrown, "INACTIVE", "INACTIVE", "OFF");
+                    handleStateTransition(stateMoving_Towards_Thrown, "INACTIVE", "INACTIVE", "");
                     break;
                 case messageClosed:
-                    handleStateTransition(stateMoving_Towards_Closed, "INACTIVE", "INACTIVE", "OFF");
+                    handleStateTransition(stateMoving_Towards_Closed, "INACTIVE", "INACTIVE", "");
                     break;
                 case reachedThrown:
                     // Error.
@@ -96,10 +96,10 @@ void MQTTServo::messageReceived(receivedMessageEnum message) {
             switch(message) {
                 case messageThrown:
                     // handleStateTransition(stateThrown, "ACTIVE", "INACTIVE", "OFF");
-                    handleStateTransition(stateMoving_Towards_Thrown, "INACTIVE", "INACTIVE", "OFF");
+                    handleStateTransition(stateMoving_Towards_Thrown, "INACTIVE", "INACTIVE", "");
                     break;
                 case messageClosed:
-                    handleStateTransition(stateMoving_Towards_Closed, "INACTIVE", "INACTIVE", "OFF");
+                    handleStateTransition(stateMoving_Towards_Closed, "INACTIVE", "INACTIVE", "");
                     break;
                 case reachedThrown:
                     // Error.
@@ -115,10 +115,10 @@ void MQTTServo::messageReceived(receivedMessageEnum message) {
         case stateMoving_Towards_Closed:
             switch(message) {
                 case messageThrown:
-                    handleStateTransition(stateMoving_Towards_Thrown, "INACTIVE", "INACTIVE", "OFF");
+                    handleStateTransition(stateMoving_Towards_Thrown, "INACTIVE", "INACTIVE", "");
                     break;
                 case messageClosed:
-                    handleStateTransition(stateMoving_Towards_Closed, "INACTIVE", "INACTIVE", "OFF");
+                    handleStateTransition(stateMoving_Towards_Closed, "INACTIVE", "INACTIVE", "");
                     break;
                 case reachedThrown:
                     // Error.
@@ -134,11 +134,11 @@ void MQTTServo::messageReceived(receivedMessageEnum message) {
         case stateClosed:
             switch(message) {
                 case messageThrown:
-                    handleStateTransition(stateMoving_Towards_Thrown, "INACTIVE", "INACTIVE", "ON");
+                    handleStateTransition(stateMoving_Towards_Thrown, "INACTIVE", "INACTIVE", "");
                     break;
                 case messageClosed:
                     // handleStateTransition(stateClosed, "INACTIVE", "ACTIVE", "ON");
-                    handleStateTransition(stateMoving_Towards_Closed, "INACTIVE", "INACTIVE", "ON");
+                    handleStateTransition(stateMoving_Towards_Closed, "INACTIVE", "INACTIVE", "");
                     break;
                 case reachedThrown:
                     // Error.
@@ -154,10 +154,10 @@ void MQTTServo::messageReceived(receivedMessageEnum message) {
         case stateMoving_Towards_Thrown:
             switch(message) {
                 case messageThrown:
-                    handleStateTransition(stateMoving_Towards_Thrown, "INACTIVE", "INACTIVE", "ON");
+                    handleStateTransition(stateMoving_Towards_Thrown, "INACTIVE", "INACTIVE", "");
                     break;
                 case messageClosed:
-                    handleStateTransition(stateMoving_Towards_Closed, "INACTIVE", "INACTIVE", "ON");
+                    handleStateTransition(stateMoving_Towards_Closed, "INACTIVE", "INACTIVE", "");
                     break;
                 case reachedThrown:
                     handleStateTransition(stateThrown, "ACTIVE", "INACTIVE", "OFF");
@@ -178,9 +178,11 @@ void MQTTServo::handleStateTransition(stateEnum newState, const char* thrownMess
 
     this->currentState = newState;
 
-    publishMQTTSensor(this->thrownTopic, thrownMessage);
-    publishMQTTSensor(this->closedTopic, closedMessage);
-    publishMQTTSensor(this->midPointTopic, midPointMessage);
+    publishToMQTT(this->thrownTopic, thrownMessage);
+    publishToMQTT(this->closedTopic, closedMessage);
+
+    // Only send a mid point message if it has been passed in.
+    if (strlen(midPointMessage) > 0) publishToMQTT(this->midPointTopic, midPointMessage);
 
     updateWebPageState();
 }
@@ -336,7 +338,8 @@ void MQTTServo::calculatePeriods() {
     }
 }
 
-void MQTTServo::publishMQTTSensor(const char* topic, const char* payload) {
+// void MQTTServo::publishMQTTSensor(const char* topic, const char* payload) {
+void MQTTServo::publishToMQTT(const char* topic, const char* payload) {
     // Do not publish if the topic is empty.
     if (strlen(topic) > 0) {
         // Publish the payload to the sensor topic. Retained is set to False.
