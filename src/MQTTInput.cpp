@@ -1,8 +1,10 @@
 #include <Arduino.h>
 #include <MQTTInput.h>
+#include <MQTTContainer.h>
 
 extern WebSocketsServer webSocket;
 extern PubSubClient mqttClient;
+extern MQTTContainer container;
 
 MQTTInput::MQTTInput(uint8_t pinNumber, const char* inputTopic, Adafruit_MCP23017* mcp) {
     // Store the parameters.
@@ -76,7 +78,8 @@ void MQTTInput::publishMQTTInput() {
 
     this->updateWebPage();
 
-    Serial.printf("Message published to topic [%s]  %s\n", this->inputTopic, payload);
+    // Serial.printf("Message published to topic [%s]  %s\n", this->inputTopic, payload);
+    container.sendLogMessage("Message published to topic [%s]  %s\n", this->inputTopic, payload);
 }
 
 void MQTTInput::updateWebPage() {

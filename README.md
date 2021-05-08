@@ -44,6 +44,14 @@ The following methods are available for configuration;-
 * setClosedTopic. If this value is set the software will publish an MQTT message to this topic when the servo reaches the closed angle.
 * setMidPointTopic. If this value is set the software will publish an MQTT message to this topic when the servo reaches the mid point angle.
 
+### Blink
+Use of a Blink object allows multiple LEDs to blink in phase. Objects of this class can be added to the container by the use of the container's addBlink() method. The parameters to this method are;-
+* onTime_mS. This is the time in milliseconds where the controlled LED will show the on colour.
+* offTime_mS. This is the time in milliseconds where the controlled LED will show the off colour.
+
+An example of use follows;-
+*       Blink* fastBlink = container.addBlink(500, 500);
+
 ### MQTT_RGB_LED
 Objects of this class can be added to the container by the user of the container's addRGB_LED() method. The parameters to this method are;-
 * ledNumber. The zero based number of the LED in the string of individually addressable RGB LEDs.
@@ -52,12 +60,11 @@ Objects of this class can be added to the container by the user of the container
 
 The following are examples of use;-
 *       MQTT_RGB_LED* led1_WHITE = container.addRGB_LED(0, "trains/track/light/LED1", rgb);
-This will create the default LED which will display white when an ON message is received and black when an OFF message is received.
+This will create an LED which will display the default on colour (white) when an ON message is received and the default off colour (black) when an OFF message is received.
 *       MQTT_RGB_LED* led1_RED = container.addRGB_LED(0, "trains/track/light/LED1_Red", rgb);
         led1_RED->setOnColour(CRGB::Red);
         led1_RED->setOffColour(CRGB::Black);
 This will create an LED which will display red when an ON message is received and black when an OFF message is received.
 *       MQTT_RGB_LED* led1_WHITE = container.addRGB_LED(0, "trains/track/light/L002", rgb);
-        led1_WHITE->setOnTime(500);
-        led1_WHITE->setOffTime(500);
-This will create an LED which will blink showing the default on colour (white) for 500mS and then the default off colour (black) for 500mS when an ON message is received. The LED will show black when an OFF message is received.
+        led1_WHITE->setBlink(fastBlink);
+This will create an LED which will blink showing the default on colour (white) for 500mS and then the default off colour (black) for 500mS when an ON message is received. The LED will show the default off colour (black) when an OFF message is received.

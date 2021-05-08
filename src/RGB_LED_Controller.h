@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <FastLED.h>
 
-#define NUM_LEDS 1
+#define NUM_LEDS 3
 #define DATA_PIN 13
 
 class RGB_LED_Controller {

@@ -3,10 +3,12 @@
 #include <ESP8266WiFi.h>
 #include <WebSocketsServer.h>
 #include <MQTT_EEPROM.h>
+#include <MQTTContainer.h>
 
 extern WebSocketsServer webSocket;
 extern PubSubClient mqttClient;
 extern MQTT_EEPROM mqttEEPROM;
+extern MQTTContainer container;
 
 MQTTServo::MQTTServo(uint8_t pinNumber, const char* turnoutTopic, Adafruit_PWMServoDriver* pwm) {
     // Store the parameters.
@@ -340,7 +342,8 @@ void MQTTServo::publishMQTTSensor(const char* topic, const char* payload) {
         // Publish the payload to the sensor topic. Retained is set to False.
         mqttClient.publish(topic, payload, false);
 
-        Serial.printf("Message published to topic [%s]  %s\n", topic, payload);
+        // Serial.printf("Message published to topic [%s]  %s\n", topic, payload);
+        container.sendLogMessage("Message published to topic [%s]  %s\n", topic, payload);
     }
 }
 

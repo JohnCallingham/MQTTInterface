@@ -9,6 +9,7 @@
 //#include <FastLED.h>
 #include <ESP8266WebServer.h>
 #include <list>
+#include <Blink.h>
 
 class MQTTContainer {
 
@@ -23,24 +24,29 @@ class MQTTContainer {
         MQTTInput* addInput(uint8_t pinNumber, const char* inputTopic);
         MQTTInput* addInput(uint8_t pinNumber, const char* inputTopic, Adafruit_MCP23017* mcp);
 
-        // MQTT_RGB_LED* addRGB_LED(RGB_LED_Controller* rgb, uint8_t ledNumber, const char* ledTopic);
         MQTT_RGB_LED* addRGB_LED(uint8_t ledNumber, const char* ledTopic, RGB_LED_Controller* rgb);
+
+        Blink* addBlink(unsigned long onTime_mS, unsigned long offTime_mS);
 
         void loop();
 
         void setBroker(const char* mqttBroker) {this->mqttBroker = mqttBroker;}
         void setPort(uint16_t mqttPort) {this->mqttPort = mqttPort;}
-        void setStartupTopic(const char* startupTopic) {this->startupTopic = startupTopic;}
+        void setLogTopic(const char* logTopic) {this->logTopic = logTopic;}
+
+        void sendLogMessage(const char* s, ...);
 
     private:
         std::list<MQTTServo*> servoList;
         std::list<MQTTOutput*> outputList;
         std::list<MQTTInput*> inputList;
         std::list<MQTT_RGB_LED*> rgbLEDList;
+        std::list<Blink*> blinkList;
 
         const char* mqttBroker = "raspberrypi";
         uint16_t mqttPort = 1883;
-        const char* startupTopic = "events";
+        //const char* startupTopic = "events";
+        const char* logTopic = "events";
 
         String indexWebPage = "";
         String servosWebPage = "";

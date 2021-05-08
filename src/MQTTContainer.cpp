@@ -3,6 +3,8 @@
 #include <list>
 #include <WebSocketsServer.h>
 #include <MQTT_EEPROM.h>
+#include <stdarg.h>
+#include <Telnet.h>
 
 extern WebSocketsServer webSocket;
 extern WiFiClient wifiClient;
@@ -69,6 +71,16 @@ MQTT_RGB_LED* MQTTContainer::addRGB_LED(uint8_t ledNumber, const char* ledTopic,
     return newRGB_LED;
 }
 
+Blink* MQTTContainer::addBlink(unsigned long onTime_mS, unsigned long offTime_mS) {
+    Blink* newBlink = new Blink(onTime_mS, offTime_mS);
+
+    // Add the new blink object to the end of the blink list.
+    blinkList.push_back(newBlink);
+
+    // Return the pointer to the new blink object.
+    return newBlink;
+}
+
 void MQTTContainer::loop() {
     if (!initialised) {
         this->connectToMQTT();
@@ -96,7 +108,7 @@ void MQTTContainer::loop() {
     // If the MQTT connection is lost then attempt to re-establish it.
     if (!mqttClient.connected()) connectToMQTT();
     
-    // Iterate over all MQTTServo, MQTTInput and MQTT_RGB_LED objects in their lists calling their loop() method.
+    // Iterate over all MQTTServo, MQTTInput, MQTT_RGB_LED and Blink objects in their lists calling their loop() method.
     // Using a range-based for loop.
     for (MQTTServo* servo : servoList) {
 		servo->loop();
@@ -106,6 +118,9 @@ void MQTTContainer::loop() {
     }
     for (MQTT_RGB_LED* rgbLED : rgbLEDList) {
         rgbLED->loop();
+    }
+    for (Blink* blink : blinkList) {
+        blink->loop();
     }
 
     server.handleClient();
@@ -158,27 +173,31 @@ void MQTTContainer::connectToMQTT() {
     // Loop until connected.
     while (!mqttClient.connected()) {
         if (mqttClient.connect(mqtt_client_id)) {
-            Serial.printf("Connected to MQTT broker: %s\n", mqttBroker);
+            //Serial.printf("Connected to MQTT broker: %s\n", mqttBroker);
+            sendLogMessage("Connected to MQTT broker: %s", mqttBroker);
 
             // All servos to subscribe to their turnout topic.
             for (MQTTServo* servo : servoList) {
                 mqttClient.subscribe(servo->getTurnoutTopic());
 
-                Serial.printf("Servo subscribed to topic: %s\n", servo->getTurnoutTopic());
+                // Serial.printf("Servo %s subscribed to topic: %s\n", servo->getPinString(), servo->getTurnoutTopic());
+                sendLogMessage("Servo %s subscribed to topic: %s", servo->getPinString(), servo->getTurnoutTopic());
             }
 
             // All outputs to subscribe to their topic.
             for (MQTTOutput* output : outputList) {
                 mqttClient.subscribe(output->getOutputTopic());
 
-                Serial.printf("Output subscribed to topic: %s\n", output->getOutputTopic());
+                // Serial.printf("Output %s subscribed to topic: %s\n", output->getPinString, output->getOutputTopic());
+                sendLogMessage("Output %s subscribed to topic: %s", output->getPinString(), output->getOutputTopic());
             }
 
             // All RGB LEDs to subscribe to their topic.
             for (MQTT_RGB_LED* rgbLED : rgbLEDList) {
                 mqttClient.subscribe(rgbLED->getRGB_LED_Topic());
 
-                Serial.printf("RGB LED subscribed to topic: %s\n", rgbLED->getRGB_LED_Topic());
+                // Serial.printf("RGB LED %i subscribed to topic: %s\n", rgbLED->getLedNumber(), rgbLED->getRGB_LED_Topic());
+                sendLogMessage("RGB LED %i subscribed to topic: %s", rgbLED->getLedNumber(), rgbLED->getRGB_LED_Topic());
             }
 
             // Set the callback which will be used for all servos and relays.
@@ -206,7 +225,8 @@ void MQTTContainer::callback(char* topic, byte* payload, unsigned int length) {
     }
     charPayload[i] = '\0';
 
-    Serial.printf("Message received on topic [%s] %s\n", topic, charPayload);
+    //Serial.printf("Message received on topic [%s] %s\n", topic, charPayload);
+    sendLogMessage("Message received on topic [%s] %s\n", topic, charPayload);
 
     if (strcmp(charPayload, "THROWN") == 0) {
         message = MQTTServo::receivedMessageEnum::messageThrown;
@@ -541,7 +561,8 @@ void MQTTContainer::publishStartupMessage() {
     char c[message.length() + 1];
     strcpy(c, message.c_str());
 
-    mqttClient.publish(this->startupTopic, c);
+    mqttClient.publish(this->logTopic, c);
+    //logMessage(c);
 }
 
 String MQTTContainer::replaceAll(String s) {
@@ -864,4 +885,20 @@ String MQTTContainer::getRepeatingText() {
 
 bool MQTTContainer::servoPinAlreadyInUse() {
 return false;
+}
+
+void MQTTContainer::sendLogMessage(const char* s, ...) {
+    // Sends message to various logging systems.
+    char buffer[250];
+    char telnetBuffer[300];
+
+	va_list argptr;
+	va_start(argptr, s);
+	vsnprintf(buffer, 255, s, argptr);
+	va_end(argptr);
+
+    Serial.print(buffer);
+
+    sprintf(telnetBuffer, "%s\r", buffer); // Append carriage return to the buffer for telnet.
+    telnet.print(telnetBuffer);
 }

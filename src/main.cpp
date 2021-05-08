@@ -10,6 +10,9 @@
 #include <Adafruit_MCP23017.h>
 #include <RGB_LED_Controller.h>
 #include <MQTT_RGB_LED.h>
+//#include <ESPTelnet.h>
+#include <Telnet.h>
+#include <Blink.h>
 
 WiFiClient wifiClient;
 PubSubClient mqttClient;
@@ -39,7 +42,7 @@ void setup() {
   pwm->setOscillatorFrequency(27000000);
   pwm->setPWMFreq(50);  // Analog servos run at ~50 Hz updates
 
-  container.setStartupTopic("events");
+  container.setLogTopic("events");
 
   try {
  
@@ -48,12 +51,10 @@ void setup() {
  ***/
   // Create a pointer to an MQTTInput object which is connected to GPIO14 of the 8266.
   // MQTTInput* input1 = container.addInput(14, "trains/track/sensor/GPIO14");
-  // input1->getPinID(); // Keep the compiler happy!
   container.addInput(14, "trains/track/sensor/GPIO14");
 
   // Create a pointer to an MQTTInput object which is connected to port 8 of the I2C I/O expander.
   // MQTTInput* input2 = container.addInput(8, "trains/track/sensor/Port8", mcp);
-  // input2->getPinID(); // Keep the compiler happy!
   container.addInput(8, "trains/track/sensor/Port8", mcp);
   
   // Create a pointer to an MQTTInput object whose ACTIVE message will be changed to allow a button to be connected to this input.
@@ -75,8 +76,8 @@ void setup() {
  ***/
   // Create a pointer to an MQTTOutput object which is connected to an 8266 GPIO pin.
   //  This will actually turn the built in LED on and off for testing.
-  MQTTOutput* output1 = container.addOutput(LED_BUILTIN, "trains/track/light/L001");
-  output1->getPinID(); // Keep the compiler happy!
+  // MQTTOutput* output1 = container.addOutput(LED_BUILTIN, "trains/track/light/L001");
+  container.addOutput(LED_BUILTIN, "trains/track/light/L001");
   
   // Create a pointer to an MQTTOutput object which represents an output which is connected to port 14 of the I2C I/O expander.
   //MQTTOutput* output2 = container.addOutput(14, "trains/track/light/L002", mcp);
@@ -96,13 +97,19 @@ void setup() {
   servo2->setTimeFromThrownToClosed_mS(1000);
 
 /***
+ * Create blink objects to synchronise LED blinking.
+ ***/
+  Blink* fastBlink = container.addBlink(500, 500);
+  Blink* slowBlink = container.addBlink(1000, 1000);
+
+/***
  * Create the RGB LED objects.
  ***/
   // Create a pointer to an MQTT_RGB_LED object.
   // This will control the first LED in the string which defaults to White when an "ON" message is received and Black when an "OFF" message is received.
-  MQTT_RGB_LED* led1_WHITE = container.addRGB_LED(0, "trains/track/light/L002", rgb);
-  led1_WHITE->setOnTime(500);
-  led1_WHITE->setOffTime(500);
+  // MQTT_RGB_LED* led1_WHITE = container.addRGB_LED(0, "trains/track/light/L002", rgb);
+  MQTT_RGB_LED* led1_BLINK = container.addRGB_LED(0, "trains/track/light/LED1_Blink", rgb);
+  led1_BLINK->setBlink(fastBlink);
   
   // Create a pointer to another MQTT_RGB_LED object.
   // This will also control the first LED in the string but will cause a different colour to be displayed.
@@ -122,8 +129,22 @@ void setup() {
   MQTT_RGB_LED* led1_BLUE = container.addRGB_LED(0, "trains/track/light/LED1_Blue", rgb);
   led1_BLUE->setOnColour(CRGB::Blue);
   led1_BLUE->setOffColour(CRGB::Black);
-
   
+  // Create a pointer to another MQTT_RGB_LED object.
+  // This will control the second LED in the string.
+  MQTT_RGB_LED* led2_BLINK = container.addRGB_LED(1, "trains/track/light/LED2_Blink", rgb);
+  led2_BLINK->setOnColour(CRGB::Blue);
+  led2_BLINK->setOffColour(CRGB::Black);
+  led2_BLINK->setBlink(slowBlink);
+
+  // Create a pointer to another MQTT_RGB_LED object.
+  // This will control the third LED in the string.
+  MQTT_RGB_LED* led3_BLINK = container.addRGB_LED(2, "trains/track/light/LED3_Blink", rgb);
+  led3_BLINK->setOnColour(CRGB::Red);
+  led3_BLINK->setOffColour(CRGB::Black);
+  led3_BLINK->setBlink(fastBlink);
+
+
   } catch (const std::invalid_argument& e) {
     //std::cerr << e.what() << '\n';
     // Configuration error found so blink the builtin LED.
@@ -133,12 +154,16 @@ void setup() {
     while (true) {
 
 
-  digitalWrite(LED_BUILTIN, LOW); // Turn the LED on (Note that LOW is the voltage level)
-  delay(1000); // Wait for a second
-  digitalWrite(LED_BUILTIN, HIGH); // Turn the LED off by making the voltage HIGH
-  delay(1000); // Wait for two seconds
+  // digitalWrite(LED_BUILTIN, LOW); // Turn the LED on (Note that LOW is the voltage level)
+  // delay(1000); // Wait for a second
+  // digitalWrite(LED_BUILTIN, HIGH); // Turn the LED off by making the voltage HIGH
+  // delay(1000); // Wait for two seconds
 
 //above code continually crashing ???
+//https://community.platformio.org/t/platformio-cannot-handle-exceptions-with-esp8266/16738
+//but still crashing !!!
+
+
 
     }
   }
@@ -146,9 +171,13 @@ void setup() {
   // No error so continue with the setup.
   connectToWiFi();
   webSocket.begin();
+
+  setupTelnet();
+
 }
 
 void loop() {
   container.loop();
   webSocket.loop();
+  telnet.loop();
 }

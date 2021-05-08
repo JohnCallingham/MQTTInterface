@@ -4,8 +4,10 @@ INACTIVE or OFF turns the output off.
 */
 #include <MQTTOutput.h>
 #include <WebSocketsServer.h>
+#include <MQTTContainer.h>
 
 extern WebSocketsServer webSocket;
+extern MQTTContainer container;
 
 MQTTOutput::MQTTOutput(uint8_t pinNumber, const char* outputTopic, Adafruit_MCP23017* mcp) {
     // Store the parameters.
@@ -33,12 +35,14 @@ void MQTTOutput::messageReceived(char* payload) {
     // If payload == "INACTIVE" or "OFF", release relay.
     if ((strcmp(payload, "ACTIVE") == 0) || (strcmp(payload, "ON")) == 0) {
         Serial.printf("Output on pin %i on\n", this->pinNumber);
+        //container.sendLogMessage("Output on pin %i on\n", this->pinNumber);
         updatePin(LOW);
         strcpy (this->currentState, "On");
         updateWebPage();
     }
     if ((strcmp(payload, "INACTIVE") == 0) || (strcmp(payload, "OFF")) == 0) {
         Serial.printf("Output on pin %i off\n", this->pinNumber);
+        //container.sendLogMessage("Output on pin %i off\n", this->pinNumber);
         updatePin(HIGH);
         strcpy (this->currentState, "Off");
         updateWebPage();
