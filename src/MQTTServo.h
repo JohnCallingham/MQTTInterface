@@ -9,6 +9,14 @@ class MQTTServo {
     public:
         MQTTServo(uint8_t pinNumber, const char* turnoutTopic, Adafruit_PWMServoDriver* pwm);
 
+        // enum stateEnum {
+        //     stateUndefined, //0
+        //     stateThrown, //1
+        //     stateMoving_Towards_Closed, //2
+        //     stateClosed, //3
+        //     stateMoving_Towards_Thrown  //4
+        // };
+
         enum receivedMessageEnum {
             messageThrown,
             messageClosed,
@@ -25,6 +33,12 @@ class MQTTServo {
         void setClosedTopic(const char* closedTopic) {this->closedTopic = closedTopic;}
         void setMidPointTopic(const char* midPointTopic) {this->midPointTopic = midPointTopic;}
         void setCurrentAngle(int angle) {this->currentServoAngle = angle;}
+
+        bool isStateThrown() {return (currentState == stateThrown);}
+        bool isStateClosed() {return (currentState == stateClosed);}
+        bool isStateMoving() {return ((currentState == stateMoving_Towards_Closed) || (currentState == stateMoving_Towards_Thrown));}
+
+        //stateEnum getCurrentState() {return currentState;}
 
         uint8_t getPinNumber() {return this->pinNumber;}
         char* getPinString() {return this->pinString;}

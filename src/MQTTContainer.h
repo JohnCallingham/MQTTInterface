@@ -10,6 +10,7 @@
 #include <ESP8266WebServer.h>
 #include <list>
 #include <Blink.h>
+#include <Crossover.h>
 
 class MQTTContainer {
 
@@ -28,6 +29,8 @@ class MQTTContainer {
 
         Blink* addBlink(unsigned long onTime_mS, unsigned long offTime_mS);
 
+        Crossover* addCrossover(MQTTServo* servo1, MQTTServo* servo2);
+
         void loop();
 
         void setBroker(const char* mqttBroker) {this->mqttBroker = mqttBroker;}
@@ -35,6 +38,9 @@ class MQTTContainer {
         void setLogTopic(const char* logTopic) {this->logTopic = logTopic;}
 
         void sendLogMessage(const char* s, ...);
+        char* getTime();
+
+        void sendMQTTMessage(const char* topic, const char* payload);
 
     private:
         std::list<MQTTServo*> servoList;
@@ -42,6 +48,7 @@ class MQTTContainer {
         std::list<MQTTInput*> inputList;
         std::list<MQTT_RGB_LED*> rgbLEDList;
         std::list<Blink*> blinkList;
+        std::list<Crossover*> crossoverList;
 
         const char* mqttBroker = "raspberrypi";
         uint16_t mqttPort = 1883;

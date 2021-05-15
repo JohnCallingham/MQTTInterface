@@ -11,6 +11,8 @@ extern WiFiClient wifiClient;
 extern PubSubClient mqttClient;
 MQTT_EEPROM mqttEEPROM;
 
+     char timeBuffer[100];
+
 MQTTContainer::MQTTContainer() {
     // Start the web server.
     this->server.on ("/", [&]() {this->server.send(200, "text/html", this->indexWebPage);});
@@ -81,6 +83,16 @@ Blink* MQTTContainer::addBlink(unsigned long onTime_mS, unsigned long offTime_mS
     return newBlink;
 }
 
+Crossover* MQTTContainer::addCrossover(MQTTServo* servo1, MQTTServo* servo2) {
+    Crossover* newCrossover = new Crossover(servo1, servo2);
+
+    // Add the new crossover object to the end of the crossover list.
+    crossoverList.push_back(newCrossover);
+
+    // Return the pointer to the new crossover object.
+    return newCrossover;
+}
+
 void MQTTContainer::loop() {
     if (!initialised) {
         this->connectToMQTT();
@@ -108,7 +120,7 @@ void MQTTContainer::loop() {
     // If the MQTT connection is lost then attempt to re-establish it.
     if (!mqttClient.connected()) connectToMQTT();
     
-    // Iterate over all MQTTServo, MQTTInput, MQTT_RGB_LED and Blink objects in their lists calling their loop() method.
+    // Iterate over all MQTTServo, MQTTInput, MQTTOutput, MQTT_RGB_LED, Blink and Crossover objects in their lists calling their loop() method.
     // Using a range-based for loop.
     for (MQTTServo* servo : servoList) {
 		servo->loop();
@@ -116,11 +128,17 @@ void MQTTContainer::loop() {
     for (MQTTInput* input : inputList) {
         input->loop();
     }
+    for (MQTTOutput* output : outputList) { // Used for blinking LEDs.
+        output->loop();
+    }
     for (MQTT_RGB_LED* rgbLED : rgbLEDList) {
         rgbLED->loop();
     }
     for (Blink* blink : blinkList) {
         blink->loop();
+    }
+    for (Crossover* crossover : crossoverList) {
+        crossover->loop();
     }
 
     server.handleClient();
@@ -899,6 +917,81 @@ void MQTTContainer::sendLogMessage(const char* s, ...) {
 
     Serial.print(buffer);
 
-    sprintf(telnetBuffer, "%s\r", buffer); // Append carriage return to the buffer for telnet.
+    getTime();
+
+    // sprintf(telnetBuffer, "%s %s\r",timeBuffer, buffer); // Append carriage return to the buffer for telnet.
+    sprintf(telnetBuffer, "%s %s\r",  getTime(), buffer); // Append carriage return to the buffer for telnet.
     telnet.print(telnetBuffer);
+}
+
+char* MQTTContainer::getTime() {
+    // Returns the time since the program started running in the format hhh:mm:ss:SSS.
+    //char timeBuffer[100];
+    char daysBuffer[10];
+    char hoursBuffer[10];
+    char minutesBuffer[10];
+    char secondsBuffer[10];
+    //char milliSecondsBuffer[10];
+    unsigned long currentMillis;
+    unsigned long seconds;
+    unsigned long minutes;
+    unsigned long hours;
+    unsigned long days;
+
+    currentMillis = millis();
+    seconds = currentMillis / 1000;
+    minutes = seconds / 60;
+    hours = minutes / 60;
+    days = hours / 24;
+    currentMillis %= 1000;
+    seconds %= 60;
+    minutes %= 60;
+    hours %= 24;
+
+
+
+    if (days == 0) {
+        strcpy(daysBuffer, "");
+    } else {
+        sprintf(daysBuffer, "%lu", days);
+    }
+
+    if (hours > 0) {
+    //readableTime += String(hours) + ":";
+        sprintf(hoursBuffer, "%lu", hours);
+    }
+
+    if (minutes < 10) {
+    //readableTime += "0";
+        sprintf(minutesBuffer, "0%lu", minutes);
+    } else {
+        sprintf(minutesBuffer, "%lu", minutes);
+    }
+    //readableTime += String(minutes) + ":";
+
+    if (seconds < 10) {
+    //readableTime += "0";
+        sprintf(secondsBuffer, "0%lu", seconds);
+    } else {
+        sprintf(secondsBuffer, "%lu", seconds);
+    }
+    //readableTime += String(seconds) + " ago";
+
+    // sprintf (timeBuffer, "%s %s:%s:%s", daysBuffer, hoursBuffer, minutesBuffer, secondsBuffer);
+    sprintf (timeBuffer, "%02lu:%02lu:%02lu:%03lu", hours, minutes, seconds, currentMillis);
+
+    //Serial.println(timeBuffer);
+
+    return timeBuffer;
+}
+
+void MQTTContainer::sendMQTTMessage(const char* topic, const char* payload) {
+    // Do not publish if the topic is empty.
+    if (strlen(topic) > 0) {
+        // Publish the payload to the sensor topic. Retained is set to False.
+        mqttClient.publish(topic, payload, false);
+
+        // Serial.printf("Message published to topic [%s]  %s\n", topic, payload);
+        this->sendLogMessage("Message published to topic [%s]  %s\n", topic, payload);
+    }
 }

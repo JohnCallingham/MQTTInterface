@@ -19,13 +19,13 @@ void MQTT_RGB_LED::loop() {
 }
 
 void MQTT_RGB_LED::messageReceived(char* payload) {
-    if (strcmp(payload, "ON") == 0) {
+    if ((strcmp(payload, "ON") == 0) || (strcmp(payload, "ACTIVE") == 0)) {
         // Turn LED on or start blinking.
         ledMessageOn = true;
         if (!blinking) turnLEDOn();
     }
 
-    if (strcmp(payload, "OFF") == 0) {
+    if ((strcmp(payload, "OFF") == 0) || (strcmp(payload, "INACTIVE") == 0)) {
         // Turn LED off or stop blinking.
         ledMessageOn = false;
         turnLEDOff();

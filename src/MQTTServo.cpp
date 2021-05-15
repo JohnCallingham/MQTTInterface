@@ -338,16 +338,16 @@ void MQTTServo::calculatePeriods() {
     }
 }
 
-// void MQTTServo::publishMQTTSensor(const char* topic, const char* payload) {
 void MQTTServo::publishToMQTT(const char* topic, const char* payload) {
-    // Do not publish if the topic is empty.
-    if (strlen(topic) > 0) {
-        // Publish the payload to the sensor topic. Retained is set to False.
-        mqttClient.publish(topic, payload, false);
+    // // Do not publish if the topic is empty.
+    // if (strlen(topic) > 0) {
+    //     // Publish the payload to the sensor topic. Retained is set to False.
+    //     mqttClient.publish(topic, payload, false);
 
-        // Serial.printf("Message published to topic [%s]  %s\n", topic, payload);
-        container.sendLogMessage("Message published to topic [%s]  %s\n", topic, payload);
-    }
+    //     // Serial.printf("Message published to topic [%s]  %s\n", topic, payload);
+    //     container.sendLogMessage("Message published to topic [%s]  %s\n", topic, payload);
+    // }
+    container.sendMQTTMessage(topic, payload);
 }
 
 void MQTTServo::configurePin() {
