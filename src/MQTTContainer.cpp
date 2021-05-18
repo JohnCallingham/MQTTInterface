@@ -674,6 +674,10 @@ void MQTTContainer::webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
                 // Set the current angle to match the slider position. !!wwHAT HAPPENS IF WE ARE PAST THE CLOSED OR THROWN POSITIONS ??? This doesn't seem to be a problem.
                 servo->setCurrentAngle(angle);
 
+                // Set the servo state to Undefined and update the web page.
+                servo->setCurrentStateUndefined();
+                servo->updateWebPageState();
+
                 break;
             case 'e':
                 // Test Close has been clicked.

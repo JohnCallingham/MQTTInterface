@@ -6,6 +6,47 @@
 #include <Adafruit_PWMServoDriver.h>
 
 class MQTTServo {
+    private:
+        enum stateEnum {
+            stateUndefined, //0
+            stateThrown, //1
+            stateMoving_Towards_Closed, //2
+            stateClosed, //3
+            stateMoving_Towards_Thrown  //4
+        };
+
+        stateEnum currentState = stateUndefined;
+
+        uint8_t pinNumber;
+        char pinString[10];
+        Adafruit_PWMServoDriver* pwm = NULL; // NULL means use the GPIO pins on the 8266. If non NULL, then points to the object to drive the pins.
+        const char* turnoutTopic;
+
+        int angleThrown = 100;
+        int angleClosed = 80;
+        int angleMidPoint = 90;
+        unsigned long timeFromThrownToClosed_mS = 1000;
+        unsigned long timeFromClosedToThrown_mS = 1000;
+        const char* thrownTopic = "";
+        const char* closedTopic = "";
+        const char* midPointTopic = "";
+
+        int currentServoAngle;
+        unsigned long movePeriodToClosed_mS;
+        unsigned long movePeriodToThrown_mS;
+        unsigned long lastTimeServoMoved;
+
+        void calculatePeriods(); 
+        void handleStateTransition(stateEnum newState, const char* thrownSensorMessage, const char* closedSensorMessage, const char* midPointMessage);
+        const char* stateString(stateEnum state);
+        void adjustServoPosition();
+        void adjustMovingTowardsClosed();
+        void adjustMovingTowardsThrown();
+        // void publishMQTTSensor(const char* topic, const char* payload);
+        void publishToMQTT(const char* topic, const char* payload);
+
+        void configurePin();
+
     public:
         MQTTServo(uint8_t pinNumber, const char* turnoutTopic, Adafruit_PWMServoDriver* pwm);
 
@@ -53,46 +94,8 @@ class MQTTServo {
         void updateWebPageAngle();
         void updatePin(uint8_t newValue);        
 
-    private:
-        enum stateEnum {
-            stateUndefined, //0
-            stateThrown, //1
-            stateMoving_Towards_Closed, //2
-            stateClosed, //3
-            stateMoving_Towards_Thrown  //4
-        };
+        void setCurrentStateUndefined() {this->currentState = stateUndefined;}
 
-        stateEnum currentState = stateUndefined;
-
-        uint8_t pinNumber;
-        char pinString[10];
-        Adafruit_PWMServoDriver* pwm = NULL; // NULL means use the GPIO pins on the 8266. If non NULL, then points to the object to drive the pins.
-        const char* turnoutTopic;
-
-        int angleThrown = 100;
-        int angleClosed = 80;
-        int angleMidPoint = 90;
-        unsigned long timeFromThrownToClosed_mS = 1000;
-        unsigned long timeFromClosedToThrown_mS = 1000;
-        const char* thrownTopic = "";
-        const char* closedTopic = "";
-        const char* midPointTopic = "";
-
-        int currentServoAngle;
-        unsigned long movePeriodToClosed_mS;
-        unsigned long movePeriodToThrown_mS;
-        unsigned long lastTimeServoMoved;
-
-        void calculatePeriods(); 
-        void handleStateTransition(stateEnum newState, const char* thrownSensorMessage, const char* closedSensorMessage, const char* midPointMessage);
-        const char* stateString(stateEnum state);
-        void adjustServoPosition();
-        void adjustMovingTowardsClosed();
-        void adjustMovingTowardsThrown();
-        // void publishMQTTSensor(const char* topic, const char* payload);
-        void publishToMQTT(const char* topic, const char* payload);
-
-        void configurePin();
 };
 
 #endif
